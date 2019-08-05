@@ -1,0 +1,1327 @@
+---
+title: "Analyze.rmd"
+output:
+  html_document:
+    df_print: paged
+---
+***
+#### Description:  
+|   This script takes inputs in the form of counts matrices and dataframes 
+|   formatted for analysis by the CountstoAnalysis scripts for the 001 and
+|   002 datasets (with all calculations and formatting already completed) --
+|   See Inputs for all inputs. The script then conducts all summary 
+|   calculations, statistical tests, and produces all visuals and output tables
+|   found in the main text and supplement (unless otherwise noted below -- see 
+|   Outputs). Code blocks appear in more-or-less the same order that data are 
+|   presented in the text; brief descriptions head each box and more detailed 
+|   code can be found in-line. This script outputs a set of figures and tables 
+|   that are included, some with modification and stylization, in the main text 
+|   and supplement. 
+
+***
+#### Inputs:  
+1.    poc1.Rdata -- CountstoAnalysis formatted dataframe for POC fitness assay single-barcode controls.
+2.    poc2.Rdata -- CountstoAnalysis formatted dataframe for POC fitness assay dual-barcode controls.
+3.    poc92.Rdata -- CountstoAnalysis formatted dataframe for POC fitness assay fitness assay samples.
+4.    001_counts.expected.Rdata --  FastqtoCounts formatted matrix for POC fitness assay library expected (by design) counts.
+5.    001_counts.unexpected.Rdata --  FastqtoCounts formatted matrix for POC fitness assay library unexpected (barcode cross-contamination) counts.
+6.    002_CC_counts.expected.Rdata -- FastqtoCounts formatted matrix 250-generation evolution experiment expected (by design) counts -- consensus matrix constructed from two sequenced libraries.
+7.    002_CC_counts.unexpected.Rdata --  FastqtoCounts formatted matrix 250-generation evolution experiment unexpected (barcode cross-contamination) counts -- consensus matrix from two sequenced libraries.
+8.    002_counts.expected.Rdata -- FastqtoCounts formatted matrix 250-generation evolution experiment expected (by design) counts -- original sequenced library.
+9.    002_counts.unexpected.Rdata -- FastqtoCounts formatted matrix 250-generation evolution experiment unexpected (barcode cross-contamination) counts -- original sequenced library.
+10.   002_Reruns_counts.expected.Rdata -- FastqtoCounts formatted matrix 250-generation evolution experiment expected (by design) counts -- resequenced samples library.
+11.   002_Reruns_counts.unexpected.Rdata -- FastqtoCounts formatted matrix 250-generation evolution experiment unexpected (barcode cross-contamination) counts -- resequenced samples library.
+12.   myfa.Rdata -- CountstoAnalysis formatted dataframe for 250-generation experimental evolution project fitness assays.
+13.   myevo.Rdata -- CountstoAnalysis formatted dataframe for 250-generation experimental evolution project longitudinal samples.
+
+
+***
+#### Outputs:   
+1.  000_Figure_2.pdf -- Manuscript Figure 2 output as .pdf file.  
+2.  000_Figure_3.pdf -- Manuscript Figure 3 output as .pdf file. 
+3.  000_Figure_4.pdf -- Manuscript Figure 4 output as .pdf file. 
+4.  000_Figure_S1_A.pdf -- Manuscript Figure S1 panel a. output as .pdf file. 
+5.  000_Figure_S1_B.pdf -- Manuscript Figure S1 panel b. output as .pdf file. 
+6.  000_Figure_S2.pdf -- Manuscript Figure S2 output as .pdf file. 
+7.  000_Figure_S3.pdf -- Manuscript Figure S3 output as .pdf file. 
+8.  000_Figure_S4.pdf -- Manuscript Figure S4 output as .pdf file. 
+9.  000_Figure_S5.pdf -- Manuscript Figure S5 output as .pdf file. 
+10. 000_Figure_S6.pdf -- Manuscript Figure S6 output as .pdf file. 
+11. 000_Figure_S7.pdf -- Manuscript Figure S7 output as .pdf file. 
+12. 000_Figure_S8.pdf -- Manuscript Figure S8 output as .pdf file. 
+13. 000_Figure_S9.pdf -- Manuscript Figure S9 output as .pdf file. 
+14. 000_Figure_S10.pdf -- Manuscript Figure S10 output as .pdf file. 
+15. 000_Table_S4.html -- Raw Manuscript Figure S4 output as .html file. File later stylized in excel and P-values converted to fdr for publication.
+16. 000_Table_S5.csv -- Raw Manuscript Figure S5 output as .csv file. File later stylized in excel, additional columns added. 
+17. 000_Table_S6.html -- Raw Manuscript Figure S6 output as .html file. File later stylized in excel.
+18. 000_Table_S7.html -- Raw Manuscript Figure S7 output as .html file. File later stylized in excel.
+19. 000_Table_S8.html -- Raw Manuscript Figure S8 output as .html file. File later stylized in excel and P-values converted to 1-sided (higher) and fdr for publication.
+20. 000_Table_S9.html -- Raw Manuscript Figure S9 output as .html file. File later stylized in excel.
+21. 000_Table_S10.html -- Raw Manuscript Figure S10 output as .html file. File later stylized in excel.
+22. 000_Table_S11.html -- Raw Manuscript Figure S11 output as .html file. File later stylized in excel.
+23. 000_Table_S12.html -- Raw Manuscript Figure S12 output as .html file. File later stylized in excel.
+24. 000_Table_S13.html -- Raw Manuscript Figure S13 output as .html file. File later stylized in excel.
+25. 000_Table_S14.html -- Raw Manuscript Figure S14 output as .html file. File later stylized in excel.
+26. 000_Table_S15.html -- Raw Manuscript Figure S15 output as .html file. File later stylized in excel.
+
+* Table_S4 through Table_S16 are all stylized and formatted in Excel and converted to .xlsx files from .html (if originally .html formatted) for publication.
+** Table_S4 is output with raw p-values, but values are converted to fdr for publication. Table_S8 is output with raw 2-sided test p-values, but values are converted to 1-sided (higher) and fdr for publication. 
+*** Figure_1, Figure_5 are not output by this script. They are manually created in Keynote and Excel, respectively. 
+**** Table_S1, Table_S2, and Table_S3 are not output by this script. They are manually created in Excel.
+
+
+***
+### Begin Code Blocks:
+
+Prepare the workspace: clean, set options, load packages, load and final formatting on inputs.
+```{r, warning = FALSE, message=FALSE}
+rm(list = ls()) # clear workspace
+knitr::opts_chunk$set(tidy = TRUE, collapse = TRUE) # set global knitr options.
+# load required packages
+require(ggplot2); # used for plotting
+require(pwr); # used for power analysis
+require(lme4); # used for mixed effects models
+require(lmerTest); # used to interpret mixed effects models
+require(sjPlot); # used to output tables
+require(weights); # used for weighted t.test
+require(plyr); # used for dataframe manipulation
+require(gridExtra) # used for multipanel plotting
+
+options(scipen = 999) # turn off scientific notation
+```
+<br/><br/>
+
+
+
+```{r, warning = FALSE, message=FALSE}
+getwd()
+
+dir_in_pocpro <- "2_CountstoAnalysis/001_Prepare_Datasets" # input directory for Proof of concept processed dataframes
+setwd("..")
+setwd(dir_in_pocpro) # set to above directory path
+load(file = "poc1.Rdata") # load the 1bc control processed dataframe
+load(file = "poc2.Rdata") # load the 2 bc control processed dataframe
+load(file = "poc92.Rdata") # load the 92 bc proof of concept fitness assays processed dataframe
+
+dir_in_pocraw <- "001_Raw_Data_Metadata"  # input directory for Proof of concept raw dataframes
+setwd("..")
+setwd(dir_in_pocraw) # set to above directory path
+load(file = "001_counts.expected.Rdata"); poc.ce <- (counts.expected + 1)[c(1:92),]; rm(counts.expected) # expected counts
+load(file = "001_counts.unexpected.Rdata"); poc.cc <- (counts.unexpected + 1)[c(1:92),]; rm(counts.unexpected) # cross contamination counts. 
+
+dir_in_faevoraw <- "002_Raw_Data_Metadata" # input directory for FA and Evo raw dataframes
+setwd("..")
+setwd(dir_in_faevoraw) # set to above directory path
+load(file = "002_CC_counts.expected.Rdata"); faevo.ce <- (ects + 0); rm(ects) # expected counts {combined}
+load(file = "002_CC_counts.unexpected.Rdata"); faevo.cc <- (ccts + 0); rm(ccts) # cross contamination counts.{combined}
+load(file = "002_counts.expected.Rdata"); faevo.1.ce <- (counts.expected + 1)[c(1:78),]; rm(counts.expected) # expected counts {first run samples}
+load(file = "002_counts.unexpected.Rdata"); faevo.1.cc <- (counts.unexpected + 1)[c(1:78),]; rm(counts.unexpected) # cross contamination counts. {first run samples}
+load(file = "002_Reruns_counts.expected.Rdata"); faevo.2.ce <- (counts.expected + 1)[c(1:78),]; rm(counts.expected) # expected counts {rerun samples}
+load(file = "002_Reruns_counts.unexpected.Rdata"); faevo.2.cc <- (counts.unexpected + 1)[c(1:78),]; rm(counts.unexpected) # cross contamination counts. {rerun samples}
+
+dir_in_faevopro <- "002_Prepare_Datasets" # input directory for FA and Evo processed dataframes
+setwd("..")
+setwd(dir_in_faevopro) # set to above directory path
+load(file = "myfa.Rdata") # fitness assay
+load(file = "myevo.Rdata") # evolution
+rm(dir_in_faevopro, dir_in_faevoraw, dir_in_pocpro, dir_in_pocraw)
+```
+<br/><br/>
+
+
+
+Create helper functions for linear model residual plotting and data transformation.
+```{r, warning = FALSE, message=FALSE}
+# expand_residuals creates a modified histogram of residuals. Each entry in the model output is plotted a number of times equal to its reads.
+expand_residuals <- function(model, reads){
+  myfr <- NA
+  for(i in 1:length(residuals(model))){
+    times <- (((reads[i] - min(reads, na.rm = T))/(max(reads) - min(reads)))*1000) + 1 
+    myfr <- c(myfr, rep(residuals(model)[i], times = times))
+  }
+  return(myfr)
+}
+
+# log transformation for modeling. 
+log_transform <- function(myvar){
+  log(((myvar - min(myvar))/(max(myvar) - min(myvar))) + 1) 
+  return(myvar)
+}
+```
+<br/><br/>
+
+
+
+Set color palette options for all plots
+```{r}
+setpalette <- RColorBrewer::brewer.pal(6, "Dark2") # current preferred palette
+#setpalette <- c("#993404","#d95f0e","#fe9929","#41b6c4","#2c7fb8","#253494") # option 2
+#setpalette <- c("#8c510a","#d8b365","#f6e8c3", "#c7eae5","#5ab4ac","#01665e") # option 3
+```
+<br/><br/>
+
+
+
+Analysis: Assess POC fitness assay barcode fitness equivalence.
+```{r}
+my <- poc92[order(poc92$bcid),]
+
+# model & diagnostic plots ----------------------------------------------------
+my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
+mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
+hist(residuals(mymod), breaks = 50) # residuals look good, check the other diagnostic plots too...
+hist(expand_residuals(mymod, my$r), breaks = 50) # this more accurately represents the distribution of residuals in the model output.
+plot(mymod) # view the diagnostic plots
+paste0("Number of BCs with fitness different than pop mean = ",
+       sum(p.adjust(coef(summary(mymod))[,4], method = "fdr") < 0.05)) # number of barcodes with fit different than pop weighted mean. 
+paste0("RsMSE = ",
+       sqrt(mean(residuals(mymod)^2))) # report rmse (requires unscalled lm model)
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Table_S4.html")
+# -----------------------------------------------------------------------------
+
+# create temporary plotting dataframe -----------------------------------------
+myres <- as.data.frame(coef(summary(mymod)), stringsAsFactors = F) # create a myres dataframe to aid in plotting. 
+myres$p.adjust <- p.adjust(myres$`Pr(>|t|)`, method = "fdr")
+myres$bcid <-  gsub("^.*?d","",rownames(myres)) # fix barcode id names
+myres$mrw <- ddply(my, ~bcid, function(my) weighted.mean(my$rw, my$r))[,2]
+myres$rmrw <- ddply(my, ~bcid, function(my) mean(my$r))[,2]
+myres$mcmrw <- myres$mrw - weighted.mean(myres$mrw, myres$rmrw)
+myres$color <- "fdr > 0.05"; myres$color[myres$p.adjust <= 0.05] <- "fdr <= 0.05"
+myres$color <- as.factor(myres$color); myres$color <- relevel(myres$color, "fdr > 0.05")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- myres$mcmrw
+myr <- myres$rmrw
+myc <- myres$color
+mybinwidth <- 0.0025
+
+mytitle <- NULL
+myylab <- "Count"
+myxlab <- "Fitness difference from population mean"
+
+myhighlight <- "black"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+mypalette <- setpalette
+
+mytextsize <- 8
+myheight <- 3.3 
+mywidth <- 3.3
+
+p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
+  geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
+  geom_rug(alpha = myptalpha)+
+  xlim(c(-0.06, 0.06)) +
+  ylim(c(NA,15)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = myhighlight) +
+  scale_color_manual(values =mypalette, guide = FALSE) + 
+  scale_fill_manual(values =mypalette) +
+  theme_classic() +
+  theme(legend.position= c(0.8,0.8)) +
+  labs(fill = "Significance") +
+  ggtitle(mytitle)+ ylab(myylab)+ xlab(myxlab)+
+  geom_hline(yintercept=-0.01, colour="white", size=1.01)+
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
+  theme(legend.title = element_text(size = mytextsize, face = "bold"))+
+  theme(legend.text = element_text(size = mytextsize))
+p
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_2.pdf", width = mywidth, height = myheight); p; dev.off() # one column wide, equal height
+
+# -----------------------------------------------------------------------------
+rm(p, myres, mymod, my)
+```
+<br/><br/>
+
+
+
+Analysis: Calculate sequenced library reads summary values
+```{r}
+paste0("matching counts (match f and r primer barcode, and moby bc): ", sum(c(poc.ce, poc.cc, faevo.1.ce, faevo.1.cc, faevo.2.ce, faevo.2.cc), na.rm = T)) # match forward primer, reverse primer, and yeast strain BCs
+paste0("analysis counts: ", sum(c(poc.ce, poc.cc, faevo.ce, faevo.cc), na.rm = T)) # expected and cc counts in the analysis data
+paste0("expected analysis counts: ", sum(c(poc.ce,faevo.ce), na.rm = T)) # expected counts in the analysis data
+paste0("median counts per barcode: ",median(c(poc.ce, faevo.ce),  na.rm = T)) # median number of counts per barcode in the expected counts dataset.
+```
+<br/><br/>
+
+
+
+Analysis: Assess POC library barcode cross-contamination rate.
+```{r}
+# calculations ----------------------------------------------------------------
+cc = (((colSums(poc.cc, na.rm = T)) / (colSums(poc.ce, na.rm = T) + colSums(poc.cc, na.rm = T))) / colSums(!is.na(poc.cc)))*100 # cc rate per exp
+cc[is.nan(cc)] <- NA # NA nans
+myt <- as.data.frame(cc) # convert to dataframe
+myt$tc <- (colSums(poc.ce, na.rm = T) + colSums(poc.cc, na.rm = T)) # total counts to use as weight in weighted mean
+cc001 <- weighted.mean(myt$cc, myt$tc, na.rm = T) # save weighted mean cc (by expected reads) for grand cc rate. 
+r001 <- mean(myt$tc) # save mean for below calculation of grand cc rate. 
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- myt$cc
+myr <- myt$tc
+myc <- setpalette[1]
+
+mybinwidth <- 0.01
+
+mytitle <- NULL
+myylab <- "Count"
+myxlab <- "Mean Barcode Contamination Rate (Percent Total Counts)"
+
+myhighlight <- "black"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+
+p_a <- ggplot(myt, aes(x=myx)) +
+  geom_histogram(alpha = myfillapha ,color = myc, fill = myc,  binwidth = mybinwidth) +
+  geom_vline(xintercept = weighted.mean(myx, myr, na.rm = T), linetype = "dashed", color = myhighlight) +
+  geom_rug(color = myc, alpha = myptalpha)+
+  xlim(NA, 1.0) +
+  theme_classic() +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab) +
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
+  geom_hline(yintercept=-0.01, colour="white", size=1.01)+
+  annotate("text", x = 1, y = 47, label = "A", size = 10)
+p_a
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+#pdf(file = "000_Figure_S1_A.pdf", width = mywidth, height = myheight); p; dev.off()  # 2columns wide, half as tall
+# -----------------------------------------------------------------------------
+rm(cc, myt) # remove the temporary variable
+```
+<br/><br/>
+
+
+
+Analysis: Assess 250-generation experiment consensus library barcode cross-contamination rate.
+```{r}
+# Calculations ----------------------------------------------------------------
+cc = ((colSums(faevo.cc, na.rm = T)) / (colSums(faevo.ce, na.rm = T) + colSums(faevo.cc, na.rm = T))) / colSums(!is.na(faevo.cc))*100 # cc rate per exp
+cc[is.nan(cc)] <- NA # NA nans
+myt <- as.data.frame(cc) # convert to dataframe
+myt$tc <- (colSums(faevo.ce, na.rm = T) + colSums(faevo.cc, na.rm = T)) # total counts to use as weight in weighted mean
+cc002 <-  weighted.mean(myt$cc, myt$tc, na.rm = T)  # save weighted mean cc (by expected reads) for grand cc rate. 
+r002 <- mean(myt$tc) # save mean for below calculation of grand cc rate. 
+ 
+# overall cc rate
+paste0("mean cross contam as % total counts = ", weighted.mean(c(cc001, cc002), c(r001, r002)), " %") # weighted mean contam weighted.mean(c(contam rate poc, contam rate faevo), c(total counts poc, total counts faevo))
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx2 <- myt$cc
+myr <- myt$tc
+myc <- setpalette[1]
+
+mybinwidth <- 0.01
+
+mytitle <- NULL
+myylab <- "Count"
+myxlab <- "Mean Barcode Contamination Rate (Percent Total Counts)"
+
+myhighlight <- "black"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+
+mytextsize <- 8
+myheight <- 7
+mywidth <- 7
+
+p_b <- ggplot(myt, aes(x=myx2)) +
+  geom_histogram(alpha = myfillapha ,color = myc, fill = myc,  binwidth = mybinwidth) +
+  geom_vline(xintercept = weighted.mean(myx2, myr, na.rm = T), linetype = "dashed", color = myhighlight) +
+  geom_rug(color = myc, alpha = myptalpha)+
+  xlim(NA, 1.0) +
+  theme_classic() +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
+  geom_hline(yintercept=-0.01, colour="white", size=1.01)+
+  annotate("text", x = 1, y = 50, label = "B", size = 10)
+p_b
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+#pdf(file = "000_Figure_S1_b.pdf", width = mywidth, height = myheight); p; dev.off()  # 2columns wide, half as tall
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+grid.arrange(p_a, p_b, nrow = 2)
+pdf(file = "000_Figure_S1.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+# -----------------------------------------------------------------------------
+rm(cc, myt, p_a, p_b, cc001, cc002, r001, r002, myx2) # remove the temporary variable
+```
+<br/><br/>
+
+
+
+Analysis: Assess change in barcode cross-contamination rate for samples from the 250-generation experiment that were resequenced.
+```{r}
+# Calculations & models -------------------------------------------------------
+faevo.1.ce <- faevo.1.ce[,(colnames(faevo.1.ce) %in% colnames(faevo.2.ce))] # subset the run 1 data to only include those columns in the rerun dataset..expected counts..
+faevo.1.cc <- faevo.1.cc[,(colnames(faevo.1.cc) %in% colnames(faevo.2.cc))] # cross contamination counts
+faevo.1.ce <- faevo.1.ce[,colnames(faevo.1.ce)]; faevo.1.cc <- faevo.1.cc[,colnames(faevo.1.ce)] # reorder the run 1 data by column name
+faevo.2.ce <- faevo.2.ce[,colnames(faevo.1.ce)]; faevo.2.cc <- faevo.2.cc[,colnames(faevo.1.ce)] # reorder the run 2 data by run 1 column name (for paired t test below)
+myt1 <- ((colSums(faevo.1.cc, na.rm = T)) / (colSums(faevo.1.ce, na.rm = T) + colSums(faevo.1.cc, na.rm = T))) / colSums(!is.na(faevo.1.cc)) # cross contam run 1 
+myt2 <- ((colSums(faevo.2.cc, na.rm = T)) / (colSums(faevo.2.ce, na.rm = T) + colSums(faevo.2.cc, na.rm = T))) / colSums(!is.na(faevo.2.cc)) # cross contam run 2
+myt1r <- (colSums(faevo.1.ce, na.rm = T) +  colSums(faevo.1.cc, na.rm = T)) # reads run 1
+myt2r  <- (colSums(faevo.2.ce, na.rm = T) +  colSums(faevo.2.cc, na.rm = T)) # reads run 2
+
+# unweighted t-test results match weighted t-test qualitatively. see weighted t.test imemediately below.
+# var.test(myt1, myt2) # variance is not equal
+# mymod <- t.test(myt1, myt2, alternative = "greater", paired = TRUE, var.equal = FALSE); mymod # t.test, paired, 1 sided (greater), unequal variance 
+
+myt <- myt1 - myt2 # calculatation for weighted t.test below (contam run 1 - contam run 2)
+mytr <- 2/ ((1/myt1r) + (1/myt2r)) # reads for calculation below (harmonic mean of reads for run 1 and run 2)
+mymod2 <- wtd.t.test(x = myt, y = 0, weight = mytr, alternative = "greater", mean1 = T) # t.test, paired, 1 sided (greater), weighted
+# -----------------------------------------------------------------------------
+
+# create temporary plotting dataframe -----------------------------------------
+myt1 <- as.data.frame(cbind(myt1, myt1r)); colnames(myt1) <- c("cc", "r"); myt1$seq.run <- 1 # run 1 df
+myt2 <- as.data.frame(cbind(myt2, myt2r)); colnames(myt2) <- c("cc", "r"); myt2$seq.run <- 2 # run 2 df
+myt <- rbind(myt1, myt2); myt$seq.run <- as.factor(myt$seq.run) # combine
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- myt$seq.run
+myy <- myt$cc
+myr <- myt$r
+
+myx1 <- myt1$cc
+myr1 <- myt1$r
+
+myx2 <- myt2$cc
+myr2 <- myt2$r
+
+mytitle <-NULL
+myylab <- "Mean Barcode Contamination Rate (% Total Counts)"
+myxlab <- "Sequenced Libary Run Number"
+
+myoutline <-  "grey50"
+myfill <-  "grey90"
+myhighlight <- "grey50"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+mypalette <- setpalette
+
+mytextsize <- 8
+myheight <- 7
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(myt, aes(x=myx, y=myy, weight = myr, color = myx)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_segment(x=0.75, xend=1.25, y = weighted.mean(myx1, myr1),  yend = weighted.mean(myx1, myr1), color = myhighlight) +
+  geom_segment(x=1.75, xend=2.25, y = weighted.mean(myx2, myr2),  yend = weighted.mean(myx2, myr2), color = myhighlight) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_rug(sides="l", alpha = myptalpha)+
+  scale_color_manual(values = mypalette)+
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab) +
+  scale_x_discrete(breaks=c("1","2"), labels=c("Library 1", "Library 2"))+
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S2.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
+
+# -----------------------------------------------------------------------------
+rm(faevo.1.ce, faevo.1.cc, faevo.2.ce, faevo.2.cc, myt1, myt1r, myt2, myt2r, myt, mytr, p) # clean up this section. 
+rm(faevo.cc, faevo.ce, poc.cc, poc.ce) # clean up for next major set of analyses (remove the counts datasets to keep our global environment clean)
+```
+<br/><br/>
+
+
+
+Analysis: Assess whether detected fitness change for barcodes in the 250-generation experiment is affected by barcode-cross contamination rate
+```{r}
+my <- myfa[order(myfa$bctID),]
+# model & diagnostic plots ----------------------------------------------------
+mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
+# mymod <-  lm(deltafit ~ ccdeltafit, weights = rdeltafit, data = my);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
+hist(residuals(mymod), breaks = 100) # residuals have outlying points -- but biew the weighted version of the residual histogram as well....
+hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output.
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S6.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+mymod <- lmer(deltafit ~ ccdeltafit + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # unmanipulated data for plotting
+myx <- my$ccdeltafit
+myy <- my$deltafit
+myr <- my$rdeltafit
+myc <- as.character(my$treatment)
+myc[myc=="CM+Ethanoldiploid0.001"] <- "CM+EtOH \n Diploid \n 0.001 \n"
+myc[myc=="CM+Saltdiploid0.001"] <- "CM+NaCl \n Diploid \n 0.001 \n"
+myc[myc=="CMdiploid0.001"] <- "CM \n Diploid \n 0.001 \n"
+myc[myc=="CMdiploid0.004"] <- "CM \n Diploid \n 0.004 \n"
+myc[myc=="CMdiploid0.00025"] <- "CM \n Diploid \n 0.00025 \n"
+myc[myc=="CMhaploid0.001"] <- "CM \n Haploid \n 0.001 \n"
+myc <- factor(myc, levels = c("CM \n Diploid \n 0.001 \n", "CM+EtOH \n Diploid \n 0.001 \n", "CM+NaCl \n Diploid \n 0.001 \n", "CM \n Diploid \n 0.00025 \n", "CM \n Diploid \n 0.004 \n", "CM \n Haploid \n 0.001 \n"))
+
+myg <- paste0(my$treatment,my$bctID)
+
+mytitle <- NULL
+myylab <- "Change in Fitness"
+myxlab <- "Mean Barcode Contamination Rate (% Total Counts)"
+
+myhighlight <- "black"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+mypalette <- setpalette
+
+mytextsize <- 8
+myheight <- 7
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, color = myc))+
+  geom_line(aes(y=predict(mymod), group = myg, color = myc), size = 1, alpha = myptalpha)+
+  geom_point(aes(color=myc), alpha = myptalpha, size = myptsize)+
+  geom_rug(alpha = myptalpha)+
+  scale_color_manual(values = setpalette)+
+  theme_classic() +
+  labs(color = "Treatment") +
+  ggtitle(mytitle) + ylab(myylab)+ xlab(myxlab) +
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
+  theme(legend.title = element_text(size = mytextsize, face = "bold"))+
+  theme(legend.text = element_text(size = mytextsize))
+p
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off() # 7by7
+# -----------------------------------------------------------------------------
+rm(my, mymod, p, weights)
+```
+<br/><br/>
+
+
+
+Analysis: Assess fitness change in 250-generations of experimental evolution for barcodes in the 250-generation experiment. 
+```{r}
+my <- myfa[order(myfa$bctID),]
+# model & diagnostic plots ----------------------------------------------------
+mymod <- lm(deltafit ~ bctID + 0, weights = rdeltafit, data = my);summary(mymod)
+hist(residuals(mymod), breaks = 100) # tails do look a little heavy
+hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # model fit (multi) -- looks pretty good. 
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S7.html") # table does not have corrected p-values. 
+# -----------------------------------------------------------------------------
+
+# create results dataframe ----------------------------------------------------
+myres <- as.data.frame(coef(summary(mymod)), stringsAsFactors = F)
+myres$p1s_l <- pt(coef(summary(mymod))[, 3], mymod$df, lower = T) # one-sided test p-values for lower
+myres$p1s_h <- pt(coef(summary(mymod))[, 3], mymod$df, lower = F) # one-sided test p-values for higher
+myres$p1s_l.adj <- p.adjust(myres$p1s_l, method = "fdr") # fdr adjusted p value (for 1-sided lower)
+myres$p1s_h.adj <- p.adjust(myres$p1s_h, method = "fdr") # fdr adjusted p value (for 1-sided higher)
+myres$bcid <-  gsub("^.*?D","",rownames(myres)) # fix barcode id names
+myres$m_deltafit <- ddply(my, ~bctID, function(my) weighted.mean(my$deltafit, my$rdeltafit))[,2]
+myres$m_rdeltafit <- ddply(my, ~bctID, function(my) mean(my$rdeltafit))[,2]
+myres$mcm_deltafit <- myres$m_deltafit - weighted.mean(myres$m_deltafit, myres$m_rdeltafit)
+myres$color <- "fdr > 0.01"; myres$color[myres$p1s_h.adj <= 0.01] <- "fdr <= 0.01"
+myres$color <- as.factor(myres$color); myres$color <- relevel(myres$color, "fdr > 0.01")
+myres$treatment <- gsub('0025d', '0025', gsub('001d', '001', gsub('.{4}$', '', myres$bcid))) # strip bc id from treatment label, store in myres
+# -----------------------------------------------------------------------------
+
+# review results --------------------------------------------------------------
+paste0("weighted mean fitness increase for increasers = ",weighted.mean(myres$m_deltafit[myres$p1s_h.adj <= 0.01], myres$m_rdeltafit[myres$p1s_h.adj <= 0.01])) # weighted mean fit inc of sig increasers only
+paste0("minimum fitness increase for increasers = ", min(myres$m_deltafit[myres$p1s_h.adj <= 0.01])) # minimum significant increase of 2.4%
+paste0("maximum fitness increase for increasers = ", max(myres$m_deltafit[myres$p1s_h.adj <= 0.01]))# maximum significant increase of 23.5%
+
+# all treatments together
+paste0("Number of barcodes with significant decreases in fitness = ", nrow(myres[myres$p1s_l.adj <= 0.01, ]))  # check for significant fitness decrease: # find none
+paste0("Number of barcodes with significant increases in fitness = ", nrow(myres[myres$p1s_h.adj <= 0.01, ]))  # check for significant fitness increase: # find 35 rows. (35 increasers out of 152)
+paste0("Proportion of barcodes with significant increases in fitness = ",nrow(myres[myres$p1s_h.adj <= 0.01, ])/nrow(myres)) # prop increasers  # 0.23
+
+# CM diploid 1:1000
+paste0("CM diploid 1:1000:")
+myrest <- myres[myres$treatment == "CMdiploid0.001",]; paste0("n barcodes in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+
+# CM haploid 1:1000
+paste0("CM haploid 1:1000:")
+myrest <- myres[myres$treatment == "CMhaploid0.001",]; paste0("n entries in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+
+# CM+salt diploid 1:1000
+paste0("CM+salt diploid 1:1000:")
+myrest <- myres[myres$treatment == "CM+Saltdiploid0.001",]; paste0("n entries in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+
+# CM+ethanol diploid 1:1000
+paste0("CM+ethanol diploid 1:1000:")
+myrest <- myres[myres$treatment == "CM+Ethanoldiploid0.001",]; paste0("n entries in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+
+# CM diploid 1:250
+paste0("CM diploid 1:250:")
+myrest <- myres[myres$treatment == "CMdiploid0.004",]; paste0("n entries in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+
+# CM diploid 1:4000
+paste0("CM diploid 1:4000:")
+myrest <- myres[myres$treatment == "CMdiploid0.00025",]; paste0("n entries in treatment = ", nrow(myrest))
+paste0("n barcodes with fitness increase in treatment = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ]))
+paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(myrest[myrest$p1s_h.adj <= 0.01, ])/nrow(myrest))
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- myres$m_deltafit
+myr <- myres$m_rdeltafit
+myc <- myres$color
+mybinwidth <- 0.01
+
+mytitle <- NULL
+myylab <- "Count"
+myxlab <- "Fitness Change"
+
+myhighlight1 <- "black"
+myhighlight2 <- setpalette[1]
+myhighlight3 <- setpalette[2]
+myfillapha <- 0.25
+myptalpha <- 0.35
+mylinealpha <- 0.35
+mypalette <- setpalette
+
+mytextsize <- 8
+myheight <- 3.3
+mywidth <- 3.3
+
+
+p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
+  geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
+  geom_vline(xintercept = weighted.mean(myx, myr), linetype = "dashed", color = myhighlight) +
+  geom_vline(xintercept = weighted.mean(myx[myc == "fdr > 0.01"], myr[myc == "fdr > 0.01"]), linetype = "dashed", color = myhighlight2) +
+  geom_vline(xintercept = weighted.mean(myx[myc == "fdr <= 0.01"], myr[myc== "fdr <= 0.01"]), linetype = "dashed", color = myhighlight3) +
+  geom_rug(alpha = myptalpha)+
+  scale_color_manual(values =mypalette, guide = FALSE) + 
+  scale_fill_manual(values =mypalette) +
+  theme_classic() +
+  theme(legend.position= c(0.8,0.8)) +
+  labs(fill = "Significance") +
+  ggtitle(mytitle)+ ylab(myylab)+ xlab(myxlab) +
+  geom_hline(yintercept=-0.01, colour="white", size=1.01)+
+  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
+  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
+  theme(legend.title = element_text(size = mytextsize, face = "bold"))+
+  theme(legend.text = element_text(size = mytextsize))
+p
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_3.pdf", width = mywidth, height = myheight); p; dev.off() # 7by7
+# -----------------------------------------------------------------------------
+rm(my, mymod, myres, myrest, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess power to detect fitness change in this experimental evolution system, given replicate variance in the POC fitness assay dataset. 
+```{r}
+# create a power table for lms -------------------------------------------------
+myrmse <-1.7568866199638 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
+myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+mypower.lm <- as.data.frame(cbind(rep(NA, times = 12), NA, NA, NA, NA)) # create dataframe
+colnames(mypower.lm) <- c("u", "v", "f2", "sig.level", "power") # fix column names
+mypower.lm$u <- 1 # assign u
+mypower.lm$v <- 6 # assign v
+mypower.lm$sig.level <- c(0.05, 0.05, 0.05, 0.05, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.005) # assign significance
+mypower.lm$f2 <- c(myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5) # Assign effect size
+for (i in 1:nrow(mypower.lm)) { # populate power column
+  mytemp <- pwr.f2.test(u=mypower.lm$u[i], v=mypower.lm$v[i], sig.level=mypower.lm$sig.level[i], f2=mypower.lm$f2[i])
+  mypower.lm$power[i] <- mytemp$power
+}
+# ------------------------------------------------------------------------------
+
+# view and save ----------------------------------------------------------------
+write.csv(mypower.lm, file = "000_Table_S5.csv")
+# ------------------------------------------------------------------------------
+
+rm(mytemp, i, mypower.lm)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
+```{r}
+my <- myfa[order(myfa$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
+# mymod <- lm(my$deltafit ~ my$ccdeltafit + my$treatment, weights = my$rdeltafit);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
+
+hist(residuals(mymod), breaks = 100)
+hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+anova(mymod) # test term significance
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------=
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S8.html") # r2 on the lm version of htis model is 0.3059, adjusted = 0.299
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+mymod <- lmer((deltafit) ~ (ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # problems with convergence here...solved with an optimizer and some extra iterations.
+myx <- my$treatment
+myy <- my$deltafit*100
+myr <- my$rdeltafit
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "Fitness Change"
+myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(2,3,5,6), y=c(14,55,15,46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_4.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, weights)
+```
+<br/><br/>
+
+
+
+Analysis: Calculate fixation rate summaries by treatment for the 250-generation experiment. 
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# Review Results --------------------------------------------------------------
+# my[my$fixed == T,] # these are the fixed wells
+# my$treatment[my$fixed == T] # these are the treatments of the fixed wells
+
+paste0("proportion of wells that attained fixation (n=76 total wells)= ", nrow(my[my$fixed == T,])/nrow(my))  # prop fixed
+
+# CM diploid 1:1000
+myt <- my[my$treatment == "CMdiploid0.001",]; paste0("n wells in CMdiploid0.001 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+
+# CM haploid 1:1000
+myt <- my[my$treatment == "CMhaploid0.001",]; paste0("n wells in CMhaploid0.001 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+
+# CM+Salt diploid 1:1000
+myt <- my[my$treatment == "CM+Saltdiploid0.001",]; paste0("n wells in CM+Saltdiploid0.001 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+
+# CM+Ethanol 1:1000
+myt <- my[my$treatment == "CM+Ethanoldiploid0.001",]; paste0("n wells in CM+Ethanoldiploid0.001 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+
+# CM diploid 1:250
+myt <- my[my$treatment == "CMdiploid0.004",]; paste0("n wells in CMdiploid0.004 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+
+# CM diploid 1:4000
+myt <- my[my$treatment == "CMdiploid0.00025",]; paste0("n wells in CMdiploid0.00025 = ",nrow(myt)) #  wells
+paste0("number of fixed wells in treatment = ",nrow(myt[myt$fixed,])) # number fixed
+paste0("proportion of fixed wells in treatment = ",nrow(myt[myt$fixed,])/nrow(myt)) # prop fixed
+# -----------------------------------------------------------------------------
+rm(my, myt)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on T-MAX (generation of maximum deviation from generation-0 barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$tmaxdev ~ my$treatment + my$ccmaxdev_t0 + my$diff0, weights = my$rmaxdev_rt0); summary(mymod) # drop c as least significant term
+# mymod <- glm(my$tmaxdev ~ my$treatment + my$diff0, weights = my$rmaxdev_rt0); summary(mymod) # diff 0 still not significant...run the model set without it.
+
+# without: 
+# mymod <- glm(my$tmaxdev ~ my$treatment + my$ccmaxdev, weights = my$rmaxdev); summary(mymod) # drop c as least significant term
+mymod <- lm(my$tmaxdev ~ my$treatment, weights = my$rmaxdev); summary(mymod) # FINAL MODEL!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rmaxdev), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S9.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$tmaxdev
+myr <- my$rmaxdev
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "T-MAX (Generation)"
+myxlab <- "Treatment"
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  # geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(3), y=c(255), label = "*", size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S4.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on M-MAX (magnitude of maximum deviation from generation-0 barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$mmaxdev ~ my$treatment + my$ccmaxdev_t0 + my$diff0, weights = my$rmaxdev_rt0); summary(mymod) # drop c as least significant term
+# mymod <- glm(my$mmaxdev ~ my$treatment + my$diff0, weights = my$rmaxdev_rt0); summary(mymod) # diff 0 still not significant...run the model set without it.
+
+# without:
+# mymod <- glm(my$mmaxdev ~ my$treatment + my$ccmaxdev, weights = my$rmaxdev); summary(mymod) # drop c as least significant term
+mymod <- lm(my$mmaxdev ~ my$treatment, weights = my$rmaxdev); summary(mymod) # FINAL MODEL!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rmaxdev), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S10.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$mmaxdev
+myr <- my$rmaxdev
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "M-MAX"
+myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(3,6), y=c(0.91,0.765), label = c("***", "**"), size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S5.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on T-MAX-RATE (generation of maximum rate of change in barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$tmaxrate ~ my$treatment + my$ccmaxrate_t0 + my$diff0, weights = my$rmaxrate_rt0); summary(mymod) # drop c as least significant term
+# mymod <- glm(my$tmaxrate ~ my$treatment + my$diff0, weights = my$rmaxrate_rt0); summary(mymod) # diff 0 still not significant...run the model set without it.
+
+# without: 
+# mymod <- glm(my$tmaxrate ~ my$treatment + my$ccmaxrate, weights = my$rmaxrate); summary(mymod) # drop c as least significant term
+mymod <- lm(my$tmaxrate ~ my$treatment, weights = my$rmaxrate); summary(mymod) # Final model!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rmaxrate), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S11.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$tmaxrate
+myr <- my$rmaxrate
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "T-MAX-RATE"
+myxlab <- "Treatment"
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  # geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(6), y=c(257), label = "***", size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S6.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on M-MAX-RATE (magnitude of maximum rate of change in barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$mmaxrate ~ my$treatment + my$ccmaxrate_t0 + my$diff0, weights = my$rmaxrate_rt0); summary(mymod) # drop c as least significant term
+# mymod <- glm(my$mmaxrate ~ my$treatment + my$diff0, weights = my$rmaxrate_rt0); summary(mymod) # diff 0 still not significant...run the model set without it.
+
+# without: 
+# mymod <- glm(my$mmaxrate ~ my$treatment + my$ccmaxrate, weights = my$rmaxrate); summary(mymod) # drop c as least significant term
+mymod <- lm(my$mmaxrate ~ my$treatment, weights = my$rmaxrate); summary(mymod) # FINAL MODEL!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rmaxrate), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S12.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$mmaxrate
+myr <- my$rmaxrate
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <-"M-MAX-RATE"
+myxlab <- "Treatment"
+
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(4), y=c(0.0325), label = "*", size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S7.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on T-MAX-DIFF (generation of maximum difference in sympatric barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$tmaxdiff ~ my$treatment + my$ccmaxdiff_t0 + my$diff0, weights = my$rmaxdiff_rt0); summary(mymod) # drop c as least significant term
+mymod <- lm(my$tmaxdiff ~ my$treatment + my$diff0, weights = my$rmaxdiff_rt0); summary(mymod)# # FINAL MODEL!
+
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rtcc), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S13.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$tmaxdiff
+myr <- my$rmaxdiff_rt0
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "T-MAX-DIFF"
+myxlab <- "Treatment"
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S8.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on M-MAX-DIFF (magnitude of maximum difference in sympatric barcoded strain abundance)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$mmaxdiff ~ my$treatment + my$ccmaxdiff_t0 + my$diff0, weights = my$rmaxdiff_rt0); summary(mymod) # drop c as least significant term
+mymod <- lm(my$mmaxdiff ~ my$treatment + my$diff0, weights = my$rmaxdiff_rt0); summary(mymod)# # FINAL MODEL!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rtcc), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S14.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$mmaxdiff
+myr <- my$rmaxdiff_rt0
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "M-MAX-DIFF"
+myxlab <- "Treatment"
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(3,6), y=c(0.525), label = "***", size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S9.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+
+
+
+Analysis: Assess effects of evolutionary treatment on total change in barcode abundance (summed across six intervals)
+```{r}
+my <- myevo[order(myevo$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+# with initial proportions included in the model:
+# mymod <- glm(my$tcc ~ my$treatment + my$cctcc_t0 + my$diff0, weights = my$rtcc_rt0); summary(mymod) # drop c as least significant term
+# mymod <- glm(my$tcc ~ my$treatment + my$diff0, weights = my$rtcc_rt0); summary(mymod) # diff 0 still not significant...run the model set without it.
+
+# without: 
+# mymod <- glm(my$tcc ~ my$treatment + my$cctcc, weights = my$rtcc); summary(mymod) # drop c as least significant term
+mymod <- lm(my$tcc ~ my$treatment, weights = my$rtcc); summary(mymod) # FINAL MODEL!
+anova(mymod) # test term significance with an lm 
+hist(residuals(mymod), breaks = 25)
+hist(expand_residuals(mymod, my$rtcc), breaks = 25) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
+plot(mymod) # check model fit 
+summary(mymod)$r.squared # for R2 value
+summary(mymod)$adj.r.squared # for adjusted R2 value
+# -----------------------------------------------------------------------------
+
+# model output -----------------------------------------------------------------
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S15.html")
+# -----------------------------------------------------------------------------
+
+# Visualize -------------------------------------------------------------------
+myx <- my$treatment
+myy <- my$tcc
+myr <- my$rtcc
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "Total Change in Abundance"
+myxlab <- "Treatment"
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(2,4,6), y=c(0.0275,0.06825,0.026), label = c("*","**","*"), size = 8, fontface = "bold")
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_S10.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, p)
+```
+<br/><br/>
+

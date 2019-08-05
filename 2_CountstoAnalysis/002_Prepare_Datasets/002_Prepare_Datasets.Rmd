@@ -1,0 +1,953 @@
+---
+title: "002_Prepare_Datasets.rmd"
+output:
+  html_document:
+    df_print: paged
+---
+
+***
+#### Description:  
+
+|      This script takes inputs in the form of counts matrices and metadata control files and produces full demultiplexed and formatted 
+|      dataframes with all calculated fields necessary for analysis and visualization. Briefly, this script first takes data from multiple
+|      sequenced libraries(002, 002reruns) and combines the datasets to form a single consensus dataset that minimizes cross  
+|      contamination rates among samples. Next, data entries corresponding to fitness assay samples are subsetted from the full
+|      dataset and processed to form a fitness assay dataset for analysis and visualization. Finally, data entries corresponding to 
+|      longitudinal evolution samples are subsetted from the full dataset and processed to forma  longtiduinal dataset for analysis 
+|      and visualization; fitness assay data are appended to this latter dataframe for joint analysis of fitness assay and longitudinal 
+|      data. 
+
+
+***
+#### Inputs:  
+
+1.  002_Metadata.csv -- Control file containing metadata for the samples in the sequenced library 002  
+2.  002_counts.expected.Rdata -- 002 library derived Counts matrix containing expected counts values for MOBY barcode IDs (row) by sample (column)  
+3.  002_counts.unexpected.Rdata -- 002 library derived Counts matrix containing cross contamination counts values for MOBY barcode IDs (row) by sample (column)  
+
+4. 002_Reruns_Metadata.csv -- Control file containing metadata for the resequenced samples from library 002  
+5. 002_Reruns_counts.expected.Rdata -- 002 Reruns library derived Counts matrix containing expected counts values for MOBY barcode IDs (row) by sample (column)  
+6. 002_Reruns_counts.unexpected.Rdata -- 002 Reruns library derived Counts matrix containing cross contamination counts values for MOBY barcode IDs (row) by sample (column)  
+
+***
+#### Outputs:  
+
+1. 002_CC_counts.expected.Rdata -- combined counts matrix containing expected counts values for MOBY barcode IDs (row) by sample (column)
+2. 002_CC_counts.unexpectedexpected.Rdata -- combined counts matrix containing cross contamination counts values for MOBY barcode IDs (row) by sample (column)
+3. myfa -- a fully formated dataframe for statistical analysis and visualization of fitness assay data  
+4. myevo -- a fully fomrated dataframe for statistical analysis and visualizaiton of longitudinal sampling data  
+
+
+***
+# Setup Script
+Prepare the workspace, set global options, load packages, set directories.
+```{R, warning = FALSE, tidy = TRUE}
+rm(list=ls()) # clear workspace
+knitr::opts_chunk$set(tidy = TRUE) # set global knitr options.
+options(scipen = 999) # turn off scientific notation
+require(plyr, quietly = T) # load required packages
+dir_in <- "002_Raw_Data_Metadata"# input directory
+```
+<br/><br/>
+
+
+
+
+
+***
+# Load Seqeuncing Library Datasets  
+Load and prepare metadata files for the 002 and 002 reruns sequenced libraries.
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir_in)
+mdata_o <- read.csv(file = "002_Metadata.csv", header = TRUE, stringsAsFactors = FALSE)# metadata original
+mdata_o[mdata_o == ""] <- NA
+mdata_r <- read.csv(file = "002_Reruns_Metadata.csv", header = TRUE, stringsAsFactors = FALSE) # metadata reruns
+mdata_r[mdata_r==""] <- NA
+```
+<br/><br/>
+
+
+
+Load and prepare counts expected and counts unexpected datasets for the 002 sequenced library. 
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir_in)
+load(file = "002_counts.expected.Rdata") # expected counts
+ects_o <- counts.expected; rm(counts.expected)
+ects_o <- ects_o[1:78,] # remove primer pair counts column.
+ects_o <- ects_o + 1 # add one pseudocount for 0-count handling
+ects_o <- t(ects_o) # transpose to match metadata format
+
+load(file = "002_counts.unexpected.Rdata") # cross-contamination counts
+ccts_o <- counts.unexpected; rm(counts.unexpected)
+ccts_o <- ccts_o[1:78,] # remove primer pair counts column.
+ccts_o <- ccts_o + 1 # add one pseudocount for consistency with ects dataset
+ccts_o <- t(ccts_o) # transpose to match metadata format
+```
+<br/><br/>
+
+
+
+Combine metadata with counts expected data, and calculate primer pair (pp) summary statistics for the 002 sequenced library. 
+```{R}
+mdata_o$run <- 1 # assign the run id for the dataset as 1 (origninal sequenced library)
+mdata_o$ppects <- rowSums(ects_o, na.rm = T) # primer pair expected counts
+mdata_o$ppccts <- rowSums(ccts_o, na.rm = T) # primer pair cross-contam counts
+mdata_o$cc <-  (mdata_o$ppccts / (mdata_o$ppects + mdata_o$ppccts))/(78 - mdata_o$bcpexp) # pp cross contamination rate
+myo <- cbind(mdata_o, ects_o) # append counts data to metadata
+rm(mdata_o) # clean up.
+```
+<br/><br/>
+
+
+
+Load and prepare counts expected and counts unexpected datasets for the 002 reruns sequenced library. 
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir_in) # set the working directory to the input directory.
+load(file = "002_Reruns_counts.expected.Rdata") # expected counts
+ects_r <- counts.expected; rm(counts.expected)
+ects_r <- ects_r[1:78,] # remove primer pair counts column.
+ects_r <- ects_r + 1 # add one pseudocount for 0-count handling
+ects_r <- t(ects_r) # transpose to match metadata format
+
+load(file = "002_Reruns_counts.unexpected.Rdata") # cross-contamination counts
+ccts_r <- counts.unexpected; rm(counts.unexpected)
+ccts_r <- ccts_r[1:78,] # remove primer pair counts column.
+ccts_r <- ccts_r + 1 # add one pseudocount for consistency with ects dataset
+ccts_r <- t(ccts_r) # transpose to match metadata format
+```
+<br/><br/>
+
+
+
+Combine metadata with counts data, and calculate primer pair (pp) summary statistics for the 002 reruns sequenced library. 
+```{R}
+mdata_r$run <- 2 # assign the run id for the dataset as 2 (reruns sequenced library)
+mdata_r$ppects <- rowSums(ects_r, na.rm = T) # primer pair expected counts
+mdata_r$ppccts <- rowSums(ccts_r, na.rm = T) # primer pair cross-contam counts
+mdata_r$cc <-  (mdata_r$ppccts / (mdata_r$ppects + mdata_r$ppccts))/(78 - mdata_r$bcpexp) # pp cross contamination rate
+myr <- cbind(mdata_r, ects_r) # append data to metadata
+rm(mdata_r) # clean up.
+```
+<br/><br/>
+
+
+
+
+
+***
+# Combine Seqeuncing Library Datasets  
+For experiments included in sequenced library 002 and sequenced libary 002 reruns, select only the less cross-contaminated entry to retain for analysis. 
+```{R}
+mydata_o <- myo # placeholder for original dataset
+mydata_r <- myr # placeholder for reruns dataset
+mydata_o <- mydata_o[mydata_o$exp %in% mydata_r$exp,] # keep only o entries also in r
+mydata_r <- mydata_r[mydata_r$exp %in% mydata_o$exp,] # keep only r entries also in o
+mydata_r <- mydata_r[rownames(mydata_o),] # sort r to match o
+
+# create a new dataframe containing the 66 samples that were run twice,
+# pulling from mydata_o and mydata_r and picking the less cross contaminated entry.
+mydata_n <- mydata_o 
+for(i in 1:nrow(mydata_o)){ # for each row in the original dataset
+  if(mydata_o[i,"cc"] > mydata_r[i, "cc"]){ # if original run is more contaminated than rerun....
+    mydata_n[i,] <- mydata_r[i,] # replace with rerun data
+  } 
+}
+
+# create a new dataframe for the full dataset with metadata plus counts data for,
+# when a row with a name that matches the rerun rows is reached, replace with the 
+# appropriate row from the consolidated run 1, run2, 66 sample dataset above. 
+my <- myo 
+for (i in 1:nrow(my)) { # for each row in the original dataset
+  if(rownames(my)[i] %in% rownames(mydata_n)){ # if the rowname is in mydata_n...
+    my[i,] <- mydata_n[rownames(my)[i],] # repalce with the mydata_n entry...
+  }
+}
+
+# repeat the above process for the expected counts data, retaining the entry (1 or 2) with less
+# cross contamination
+ects <- ects_o
+for (i in 1:nrow(ects)) { # for each row in the original dataset...
+  if(my$run[i] == 2){ # if the corresponding entry in the metadata+counts dataset is run 2...
+    ects[i,] <- ects_r[which(rownames(ects_r) == rownames(ects)[i]),] # ...replace the row 
+    # with the corresponding run 2 row.
+  }
+}
+
+# repeat the above process for the unexpected counts data, retaining the entry (1 or 2) with less
+# cross contamination
+ccts <- ccts_o
+for (i in 1:nrow(ccts)) { # for each row in the original dataset...
+  if(my$run[i] == 2){ # if the corresponding entry in the metadata+counts dataset is run 2...
+    ccts[i,] <- ccts_r[which(rownames(ccts_r) == rownames(ccts)[i]),] # ...replace the row 
+    # with the corresponding run 2 row.
+  }
+}
+rm(ects_o, ects_r, ccts_o, ccts_r, mydata_n, mydata_o, mydata_r, myo, myr) # clean up
+```
+<br/><br/>
+
+
+
+Save run selected counts expected and counts unexpected expected datasets (reference only; not used in downstream scripts).
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir = dir_in) # set the directory to the input (data) directory
+# transpose the counts datasets to their original shape & save combined counts versions of each.
+ects <- t(ects); save(ects, file = "002_CC_counts.expected.Rdata"); rm(ects) # expected
+ccts <- t(ccts); save(ccts, file = "002_CC_counts.unexpected.Rdata"); rm(ccts) # unexpected
+```
+<br/><br/>
+
+
+
+Split the meatadata+data datset for the 002 combined sequencing runs into evo (evolution) and fa (fitness assay) datasets for processing and analysis. 
+```{R}
+myevo <- my[my$at == "evolution",] # longitudinal evolutionary data entries
+myevo <- myevo[myevo$bcpwell == 2,] # retain only the two barcode per well entries (those that correspond to the fitness assay dataset)
+myfa <- my[my$at == "competition",] # fitness assay data entries
+```
+<br/><br/>
+
+
+
+
+
+***
+# Process the fitness assay data for analysis and visualization.  
+Create, arrange, and populate columns for barcode ID and barcode counts for all barcodes present in each pp.
+```{R}
+my <- myfa
+for (i in 1:23) { # create columns for barcode counts in form (bc#cts) for 1:23
+  my[,paste0("bc", i, "cts")] <- NA 
+}
+
+my <- my[,c(1:10, 34:37, 11:33, 116:138, 38:115)] # rearrange and select columns to retain
+colnames(my)[which(colnames(my) == "bc1")] <- "ref" # name bc1 to reference columns 
+colnames(my)[which(colnames(my) == "bc1cts")] <- "refcts" # same for the counts
+
+# this nested loop populates a set of columns labaled refcts:bc23cts with the appropriate counts from the 78 data columns
+# based on the recorded barcode id stored in ref:bc23.
+for (i in 1:nrow(my)) { # for each primer pair....
+  my$refcts[i] <- my[i,which(colnames(my) == my$ref[i])] # populate the ref counts cell.
+  for (j in 2:23) { # for each other barcode j...
+    if  (!is.na(my[i, paste0("bc", j)])){ # if there is a barcode j in this pp...
+      my[i,paste0("bc", j, "cts")] <-  my[i,which(colnames(my) == my[i, paste0("bc", j)])] # populate the bcjcts cell with counts from the corresponding column for bcj.
+    } else { # if there is not a barcode j in this pp....
+      my[i,paste0("bc", j, "cts")] <- NA # populate the bcjcts cell with an NA value (for now)
+    }
+  }
+}
+my <- my[,c(1:60)] # omit the data columns from the end they are no longer necessary. 
+myfa <- my # pass the cleaned up dataframe back to myfa
+```
+<br/><br/>
+
+
+
+Convert the one-pp-per-row dataset to a dataset format with data for a single barcode (at a single fitness assay timepoint) (at either generation 0 or gereration 250) per row.
+```{R}
+my <- myfa 
+myttg <- NA # start the new dataframe, this is where we will grow the one well per row dataset. 
+for(i in 1:nrow(my)){ # for each row in my...
+  myt <- my[i,] # make that row a new dataset
+  j <- 16 # set j to 16 (start column number)
+  while(j<37){ # while j is less than the index one past the last starting barcode for a pair...
+      mytt <- myt[c(1:15, 38, j, j+23, j+1, j+24)] # create a dataset with all metadata, and the data for just that pair
+      colnames(mytt)[c(17:20)] <- c("bc1", "bc1cts", "bc2", "bc2cts") # fix colum names
+      myttg <- rbind(myttg, mytt) # append to the growing dataframe
+      j <- j+2 # increment j
+  }
+}
+my <- myttg # pass the dataframe back to my
+my <- my[!is.na(my$bc1),] # remove na entries (e.g., entry for pair bc22 and bc23 for a set with only 10 barcodes. )
+my$wo <- 1 # well order (for symoatric pairs)
+my <- my[,c(1:16, 21, 17:20)] # rearrange columns
+my2 <- my[,c(1:17, 20, 21, 18, 19)]  # create a my2 dataframe with barcode 2 as barcode 1 (so we can have one fitness value per row at the end)
+my2$wo <- 2 # update the well order field in this new dataset
+colnames(my2) <- colnames(my) # fix column names to match my
+my <- rbind(my, my2) # rowbind the two datasets. 
+myfa <- my # pass to myfa
+rm(my2, myt, mytt, myttg) # clean up. 
+```
+<br/><br/>
+
+
+
+Add a dilution field to each entry (this was not possible before the preceding demultiplexing steps).
+```{R}
+my$dilution <- 0.001 # standard dilution (1:1000) 
+my$dilution[my$set == "M4"] <- 0.004 # decreased dilution factor (1:250)
+my$dilution[my$set == "M9a" & my$bc1 %in% c("d1B3","d1C3","d1B4","d1C4","d1B5","d1C5","d1B6","d1C6","d1B7","d1C7")] <- 0.004 # continued.
+my$dilution[my$set == "M5"] <- 0.00025 # increased dilution factor (1:250)
+my$dilution[my$set == "M9b" & my$bc1 %in% c("d1B9","d1C9","d1B10","d1C10","d1B11","d1C11","d1B12","d1C12","d1D2","d1E2")] <- 0.00025 # continued.
+my <- my[,c(1:7, 22, 8:21)] # reorder columns
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Subset myfa into datasets corresponding to fitness assay initial and fitness assay final timepoints, then combine these datasets into a single dataframe such that each row includes initial and final timepoint data for a single barcode at either generation 0 or generation 250.
+```{R}
+my0 <- my[my$atp == 0,] # subset for fitness  assay day i (initial mixtures)
+my2 <- my[my$atp == 2,] # subset for fitness assay day f (final overnight cultures)
+my0$id <- paste0(my0$etp, my0$rep, my0$medium, my0$ploidy, my0$dilution, my0$set, my0$bc1, my0$bc2) # append informative ids
+my2$id <- paste0(my2$etp, my2$rep, my2$medium, my2$ploidy, my2$dilution, my2$set, my2$bc1, my2$bc2)
+colnames(my0)[c(13, 14, 15, 17, 20, 22)] <- paste0(colnames(my0)[c(13, 14, 15, 17, 20, 22)], "_i") # fix names for cols where cols with shared names will both be retianed
+colnames(my2)[c(13, 14, 15, 17, 20, 22)] <- paste0(colnames(my2)[c(13, 14, 15, 17, 20, 22)], "_f")
+my <- as.data.frame(my0$etp) # start the new datafraem
+my <- cbind(my, my0$rep, my0$medium, my0$ploidy, my0$dilution, my0$set, my0$wo, my0$ref, my0$bc1, my0$bc2, my0$ppects_i, my0$ppccts_i, my0$cc_i, my0$refcts_i, my0$bc1cts_i, my0$bc2cts_i, my2$ppects_f, my2$ppccts_f, my2$cc_f, my2$refcts_f, my2$bc1cts_f, my2$bc2cts_f) # append all necessary columns to the new dataframe
+colnames(my) <- unlist(strsplit(x = colnames(my), split = "\\$"))[seq(0,44,2)] # strip out everything up to and including the $ in the col names
+myfa <- my # pass back to myfa
+rm(my0, my2) # clean up. 
+```
+<br/><br/>
+
+
+
+Begin creating the delta fitness dataframe...this is a multi-step process.  
+First, summarize data for generation-0 fitness assay technical replicates 1:4 to create a dataset with a single entry per barcode ID.
+```{R}
+my0 <- my[my$etp == 0,] # pull out gen zero entries
+my0_r1 <- my0[my0$rep == 1,] # break into datasets by replicate, this is 1
+my0_r2 <- my0[my0$rep == 2,] # and 2
+my0_r3 <- my0[my0$rep == 3,] # and 3
+my0_r4 <- my0[my0$rep == 4,] # and 4
+my0_r1$id <- paste0(my0_r1$etp, my0_r1$medium, my0_r1$ploidy, my0_r1$dilution, my0_r1$set, my0_r1$bc1, my0_r1$bc2) # append ID names for r1...
+my0_r2$id <- paste0(my0_r2$etp, my0_r2$medium, my0_r2$ploidy, my0_r2$dilution, my0_r2$set, my0_r2$bc1, my0_r2$bc2) #...r2...
+my0_r3$id <- paste0(my0_r3$etp, my0_r3$medium, my0_r3$ploidy, my0_r3$dilution, my0_r3$set, my0_r3$bc1, my0_r3$bc2) #...r3...
+my0_r4$id <- paste0(my0_r4$etp, my0_r4$medium, my0_r4$ploidy, my0_r4$dilution, my0_r4$set, my0_r4$bc1, my0_r4$bc2) #...and r4
+colnames(my0_r1)[11:(ncol(my0_r1)-1)] <- paste0(colnames(my0_r1)[11:(ncol(my0_r1)-1)], "_0r1") # add to column names for r1...
+colnames(my0_r2)[11:(ncol(my0_r2)-1)] <- paste0(colnames(my0_r2)[11:(ncol(my0_r2)-1)], "_0r2") # ...r2...
+colnames(my0_r3)[11:(ncol(my0_r3)-1)] <- paste0(colnames(my0_r3)[11:(ncol(my0_r3)-1)], "_0r3") # ...r3...
+colnames(my0_r4)[11:(ncol(my0_r4)-1)] <- paste0(colnames(my0_r4)[11:(ncol(my0_r4)-1)], "_0r4") # ... and r4
+# column bind the full day0 dataset, retaining data rows from all four replicates
+my0 <- cbind(my0_r1[,c(1:(ncol(my0_r1)-1))], my0_r2[,c(11:(ncol(my0_r2)-1))], 
+             my0_r3[,c(11:(ncol(my0_r3)-1))], my0_r4[,c(11:(ncol(my0_r4)-1))])
+rm(my0_r1, my0_r2, my0_r3, my0_r4) # clean up. 
+```
+<br/><br/>
+
+
+
+Then, append the generation-0 fitness assay datset to the generation-250 fitness assay dataset to create a dataset with all fitness assay data  (gen-0 initial, gen-0 final, gen-250 initial, and gen-250 final) for a single barcode on each row.
+```{R}
+my25 <- my[my$etp == 25,] # first create the 250 dataset
+my25$id <- paste0(my25$medium, my25$ploidy, my25$dilution, my25$set, my25$bc1, my25$bc2) # append ID names to t25
+my0$id <- paste0(my0$medium, my0$ploidy, my0$dilution, my0$set, my0$bc1, my0$bc2) # append ID names to t0
+mytg <- NA # create the bones of the dataset to grow for deltafitness
+for (i in 1:nrow(my25)) { # for each row in the generation 250 dataset...
+  myt0 <- my0[my0$id == my25$id[i],] # find the matching wentry in the generation 0 dataset
+  myt <- cbind(my25[i,1:(ncol(my25)-1)], myt0[1,11:(ncol(myt0)-1)]) # column bind the gen250 and gen0 data for each row
+  mytg <- rbind(mytg, myt) # add to the growing final dataframe
+}
+my <- mytg[2:nrow(mytg),] # remove the na row at the bottom. 
+myfa <- my # pass to myfa
+rm(mytg, myt0, myt, my0, my25) # clean up. 
+```
+<br/><br/>
+
+
+
+Add a column with treatment information to each entry in myfa.
+```{R}
+my$treatment <- as.factor(paste0(my$medium, my$ploidy, my$dilution))# create a treatment column
+my$treatment <- relevel(my$treatment, "CMdiploid0.001")
+myfa <- my
+```
+<br/><br/>
+
+
+
+Rename barcode ids (append "B"'s) when the same barcode id appears in a treatment multiple times (these will be necessary for the next block). 
+```{R}
+my$bc1 <- as.character(my$bc1); my$bc2 <- as.character(my$bc2) # first convert to character from factor
+
+#  process the CMdiploid0.001 treatment first
+my$bc1[my$treatment == "CMdiploid0.001"
+       & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")
+       & my$set == "M6"] <- paste0(my$bc1[my$treatment == "CMdiploid0.001"
+       & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")
+       & my$set == "M6"], "B") # bc1 
+my$bc2[my$treatment == "CMdiploid0.001"
+       & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")
+       & my$set == "M6"] <- paste0(my$bc2[my$treatment == "CMdiploid0.001"
+       & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")
+       & my$set == "M6"], "B") # bc2
+
+# then the CMhaploid0.001 treatment
+my$bc1[my$treatment == "CMhaploid0.001"
+       & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")
+       & my$set == "M2"] <- paste0(my$bc1[my$treatment == "CMhaploid0.001"
+       & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")
+       & my$set == "M2"], "B") # bc1 
+my$bc2[my$treatment == "CMhaploid0.001"
+       & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")
+       & my$set == "M2"] <- paste0(my$bc2[my$treatment == "CMhaploid0.001"
+       & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")
+       & my$set == "M2"], "B") # bc2
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Now that barcode ID's are all unique within a treatment, create a unique identifier for each entry that contains info regarding its treatment and barcode id (these will be necessary for downstream random effects analysis).
+```{R}
+my$bctID <- as.factor(paste0(my$treatment, my$bc1)) # store bctID as a factor that incorporates barcode id data and treatment data for each row. 
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Add a field to store the well id of each barcode -- this will ensure that entries for [bc1, bc2] and those for [bc2, bc1] for each evolutionary well can be recognized as coming from the same evolutionary well (i.e., identifier for pairs that evolved in sympatry). 
+```{R}
+my$well <- NA
+my$t1 <- NA # barcode 1 id
+my$t2 <- NA # barcode 2 id
+for(i in 1:nrow(my)){  # for each row in the dataframe...
+  my$t1[i] <- paste(sort(my[i,c("bc1", "bc2")])[1]) # barcode 1 id is the firt entry when sorted
+  my$t2[i] <- paste(sort(my[i,c("bc1", "bc2")])[2]) # barcode 2 id is the second entry when sorted
+} 
+my$well <- paste0(my$t1, my$t2) # well is ordered concatonation of t1, t2 entries
+my <- my[,1:(ncol(my) - 2)] # remove the t1, t2 columns, they are no longer needed. 
+myfa <- my # pass to myfa
+```
+<br/><br/>
+
+
+
+Remomve entries corresponsing to barcode ID's "d1H10" and "d1A10", this evolutionary well contained the reference barcode (in error.)(it cannot be analyzed for that reason).
+```{R}
+# remove rows with bc1 id == "d1H10" and "d1A10", this well contained the reference id
+my <- my[my$bc1 != "d1H10",] # rm d1H10 entries themselves
+my <- my[my$bc1 != "d1A10",] # rm the entreis for the d1H10 sympatric barcode, d1A10
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Calculate 'reads' associated with all timepoints and fitness values. Reads fields reflect the harmonic mean of counts values used in downstream calculations and analyses for each data entry. Reads are in essence an analog for confidence in each datapoint; more reads meaning more confidence. Harmonic means are used in all reads calculations (except when averaging across technical replicates) to give additional weight to small values; very small reads values can lead to problematic and low quality proportion and fitness data -- we consider this explicitly in all calculations and analyses. Reads values are utilized as reads (weights) when calculating summary information across multiple data fields (e.g., when calculating the average cross contamination across the inititial and final measurements for single fitness assay's fitness calculation).
+```{R}
+# reads for gen 0 fitness assay initial timepoint, harmonic mean of bc reads, ref reads, and total expected reads for the sample.
+my$r0ir1 <- 3/((1/my$bc1cts_i_0r1)+(1/my$refcts_i_0r1)+(1/my$ppects_i_0r1)) # r1, gen0, t=i
+my$r0ir2 <- 3/((1/my$bc1cts_i_0r2)+(1/my$refcts_i_0r2)+(1/my$ppects_i_0r2)) # r2, gen0, t=i
+my$r0ir3 <- 3/((1/my$bc1cts_i_0r3)+(1/my$refcts_i_0r3)+(1/my$ppects_i_0r3)) # r3, gen0, t=i
+my$r0ir4 <- 3/((1/my$bc1cts_i_0r4)+(1/my$refcts_i_0r4)+(1/my$ppects_i_0r4)) # r4, gen0, t=i
+
+# reads for gen 0 fitness assay final timepoint, harmonic mean of bc reads, ref reads, and total expected reads for the sample.
+my$r0fr1 <- 3/((1/my$bc1cts_f_0r1)+(1/my$refcts_f_0r1)+(1/my$ppects_f_0r1)) # r1, gen0, t=f
+my$r0fr2 <- 3/((1/my$bc1cts_f_0r2)+(1/my$refcts_f_0r2)+(1/my$ppects_f_0r2)) # r2, gen0, t=f
+my$r0fr3 <- 3/((1/my$bc1cts_f_0r3)+(1/my$refcts_f_0r3)+(1/my$ppects_f_0r3)) # r3, gen0, t=f
+my$r0fr4 <- 3/((1/my$bc1cts_f_0r4)+(1/my$refcts_f_0r4)+(1/my$ppects_f_0r4)) # r4, gen0, t=f
+
+# reads for gen 0 fitness assays, harmonic mean of initial and final timepoint reads values
+my$rfit0r1 <- 2/((1/my$r0ir1)+(1/my$r0fr1)) # r1, gen0
+my$rfit0r2 <- 2/((1/my$r0ir2)+(1/my$r0fr2)) # r2, gen0
+my$rfit0r3 <- 2/((1/my$r0ir3)+(1/my$r0fr3)) # r3, gen0
+my$rfit0r4 <- 2/((1/my$r0ir4)+(1/my$r0fr4)) # r4, gen0
+
+# reads for gen 0 fitness (mean of 4 replicates), use MEANS rather than HAMRONIC MEANS here. 
+my$rfit0 <- rowMeans(cbind(my$rfit0r1, my$rfit0r2, my$rfit0r3, my$rfit0r4)) # gen0
+
+# reads for gen 25 fitness assay initial and final timepoint, harmonic mean of bc reads, ref reads, and total expected reads for the sample.
+my$r25i <- 3/((1/my$bc1cts_i)+(1/my$refcts_i)+(1/my$ppects_i)) # gen250, t=i
+my$r25f <- 3/((1/my$bc1cts_f)+(1/my$refcts_f)+(1/my$ppects_f)) # gen250, t=f
+
+# reads for gen 250 fitness assays, harmonic mean of initial and final timepoint reads values
+my$rfit25 <- 2/((1/my$r25i)+(1/my$r25f)) # gen250
+
+# reads for the deltafitness value on each row, harmonic mean of mean gen0 fit reads and gen250 fit reads.
+my$rdeltafit <- 2/((1/my$rfit0)+(1/my$rfit25)) # deltafitness (gen250 - gen0)
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Calculate cross contamination rates for for generation-0 fitness, generation-250 fitness and deltafit (generation-250 - generation-0) for each row
+```{R}
+my$ccfit0r1 <- NA; my$ccfit0r2 <- NA; my$ccfit0r3 <- NA; my$ccfit0r4 <- NA # create cols to populate with cc for the fit0 reps 1:4
+my$ccfit0 <- NA # create col to populate with weighted cc for the fit0 reps
+my$ccfit25 <- NA # create col to populate with cc for the fit25 samples
+my$ccdeltafit <- NA # create col to populate with deltafitness cc
+for(i in 1:nrow(my)){ # for each row in my....
+  my$ccfit0r1[i] <- weighted.mean(c(my$cc_i_0r1[i], my$cc_f_0r1[i]), c(my$r0ir1[i], my$r0fr1[i])) # calculate cc for fit0 r1 with w.m
+  my$ccfit0r2[i] <- weighted.mean(c(my$cc_i_0r2[i], my$cc_f_0r2[i]), c(my$r0ir2[i], my$r0fr2[i])) # calculate cc for fit0 r2 with w.m
+  my$ccfit0r3[i] <- weighted.mean(c(my$cc_i_0r3[i], my$cc_f_0r3[i]), c(my$r0ir3[i], my$r0fr3[i])) # calculate cc for fit0 r3 with w.m
+  my$ccfit0r4[i] <- weighted.mean(c(my$cc_i_0r4[i], my$cc_f_0r4[i]), c(my$r0ir4[i], my$r0fr4[i])) # calculate cc for fit0 r4 with w.m
+  my$ccfit0[i] <- weighted.mean(c(my$ccfit0r1[i], my$ccfit0r2[i], my$ccfit0r3[i], my$ccfit0r4[i]), 
+                                c(my$rfit0r1[i], my$rfit0r2[i], my$rfit0r3[i], my$rfit0r4[i]))  # calculate cc for fit0 r1:r4 with w.m
+  my$ccfit25[i] <- weighted.mean(c(my$cc_i[i], my$cc_f[i]), c(my$r25i[i], my$r25f[i])) # calculate cc for fit25 with w.m
+  my$ccdeltafit[i] <- weighted.mean(c(my$ccfit0[i], my$ccfit25[i]), c(my$rfit0[i], my$rfit25[i])) # calculate cc for deltafitness with w.m.
+}
+myfa <- my # pass back to myfa
+```
+<br/><br/>
+
+
+
+Calculate fitness at generation-0 and generation-250; calculate change in fitness from gen-0 to gen-250 for each row. 
+```{R}
+# we use the following fitness equation:
+# fitness equation: exp((ln([barcode counts f]/ [reference counts f])
+#                      - ln([barcode counts i]/ [reference counts i])/(# generations)))
+
+my$fit0r1 <- exp((log(my$bc1cts_f_0r1/my$refcts_f_0r1) - log(my$bc1cts_i_0r1/my$refcts_i_0r1))/20) # fit gen0, r1
+my$fit0r2 <- exp((log(my$bc1cts_f_0r2/my$refcts_f_0r2) - log(my$bc1cts_i_0r2/my$refcts_i_0r2))/20) # fit gen0, r2
+my$fit0r3 <- exp((log(my$bc1cts_f_0r3/my$refcts_f_0r3) - log(my$bc1cts_i_0r3/my$refcts_i_0r3))/20) # fit gen0, r3
+my$fit0r4 <- exp((log(my$bc1cts_f_0r4/my$refcts_f_0r4) - log(my$bc1cts_i_0r4/my$refcts_i_0r4))/20) # fit gen0, r4
+
+my$fit0 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "fit0r1", "fit0r2", "fit0r3", "fit0r4")]), 
+                                                  as.numeric(x[c( "rfit0r1", "rfit0r2", "rfit0r3", "rfit0r4")]))) # fit gen0
+
+my$fit25 <- exp((log(my$bc1cts_f/my$refcts_f) - log(my$bc1cts_i/my$refcts_i))/20) # fit gen250
+my$deltafit <- my$fit25 - my$fit0 # change in fitness (gen250 - gen0).
+myfa <- my
+```
+<br/><br/>
+
+
+
+Finished processing the fitness assay data for analysis and visualization, save. 
+```{R}
+myfa$treatment <- relevel(myfa$treatment, ref = "CMdiploid0.001")
+save(myfa, file = "myfa.Rdata")
+```
+<br/><br/>
+
+
+
+
+
+***
+# Process the longtudinal evolutionary data for analysis and visualization. 
+Create, arrange, and populate columns for barcode ID and barcode counts for all barcodes present in each pp.
+```{R}
+my <- myevo
+for (i in 1:23) { # create columns for barcode counts in form (bc#cts) for 1:23
+  my[,paste0("bc", i, "cts")] <- NA 
+}
+
+my <- my[,c(1:10, 34:37, 11:33, 116:138, 38:115)] # rearrange and select columns to retain
+
+# this nested loop populates a set of columns labaled bc1cts:bc23cts with the appropriate counts from the 78 data columns
+# based on the recorded barcode id stored in ref:bc23.
+for (i in 1:nrow(my)) { # for each primer pair....
+  for (j in 1:23) { # for each other barcode j...
+    if  (!is.na(my[i, paste0("bc", j)])){ # if there is a barcode j in this pp...
+      my[i,paste0("bc", j, "cts")] <-  my[i,which(colnames(my) == my[i, paste0("bc", j)])] # populate the bcjcts cell with counts from the corresponding column for bcj.
+    } else { # if there is not a barcode j in this pp....
+      my[i,paste0("bc", j, "cts")] <- NA # populate the bcjcts cell with an NA value (for now)
+    }
+  }
+}
+my <- my[,c(1:60)] # omit the data columns from the end they are no longer necessary. 
+myevo <- my # pass the cleaned up dataframe back to myevo
+```
+<br/><br/>
+
+
+
+Convert the one-pp-per-row dataset to a dataset format with data for a single barcode (at a single longitudinal timepoint) per row.
+```{R}
+myttg <- NA # start the new dataframe, this is where we will grow the one well per row dataset. 
+for(i in 1:nrow(my)){ # for each row in my...
+  myt <- my[i,] # make that row a new dataset
+  j <- 15 # set j to 15 (start column number)
+  while(j<37){ # while j is less than the index one past the last starting barcode for a pair...
+      mytt <- myt[c(1:14, j, j+23, j+1, j+24)] # create a dataset with all metadata, and the data for just that pair
+      colnames(mytt)[c(15:18)] <- c("bc1", "bc1cts", "bc2", "bc2cts") # fix colum names
+      myttg <- rbind(myttg, mytt) # append to the growing dataframe
+      j <- j+2 # increment j
+  }
+}
+my <- myttg # pass the dataframe back to my
+my <- my[!is.na(my$bc1),] # remove na entries (e.g., entry for pair bc22 and bc23 for a set with only 10 barcodes. )
+my$wo <- 1 # well order (for symoatric pairs)
+my <- my[,c(1:14, 19, 15,16,17,18)]
+my2 <- my[,c(1:15, 18,19,16,17)]  # create a my2 dataframe with barcode 2 as barcode 1 (so we can have one fitness value per row at the end)
+my2$wo <- 2 # update the well order field in this new dataset
+colnames(my2) <- colnames(my) # fix column names to match my
+my <- rbind(my, my2) # rowbind the two datasets. 
+myevo <- my # pass back to myevo
+rm(my2, myt, mytt, myttg) # clean up.
+```
+<br/><br/>
+
+
+
+Add a dilution field to each entry (this was not possible before the preceding demultiplexing steps).
+```{R}
+my$dilution <- 0.001 # standard dilution (1:1000) 
+my$dilution[my$set == "S12"] <- 0.004 # reduced transfer dilution (1:250)
+my$dilution[my$set == "S13"] <- 0.00025 # increased tranasfer dilution (1:4000)
+my <- my[,c(1:7, 20, 8:19)] # reorder columns
+myevo <- my # pass back to myevo
+```
+<br/><br/>
+
+
+
+Convert the dataset to a format where the data for each of the seven longitudinal timepoints for a signle barcode is present on a single row.  
+```{R}
+my$id <- paste0(my$medium, my$ploidy, my$dilution, my$set, my$bc1, my$bc2) # append informative ids to each entry
+my0 <- my[my$etp == 0,] # gen0 dataframe 
+my10 <- my[my$etp == 10,] # gen100 dataframe
+my15 <- my[my$etp == 15,] # gen150 dataframe
+my20 <- my[my$etp == 20,] # gen200 dataframe
+my22 <- my[my$etp == 22,] # gen220 dataframe
+my24 <- my[my$etp == 24,] # gen240 dataframe
+my25 <- my[my$etp == 25,] # gen250 dataframe
+
+# fix names for cols where entries from multiple timepoints will be retianed
+colnames(my0)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my0)[c(13, 14, 15, 18, 20)], "_0") # gen 0
+colnames(my10)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my10)[c(13, 14, 15, 18, 20)], "_10") # gen 100
+colnames(my15)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my15)[c(13, 14, 15, 18, 20)], "_15") # gen 150
+colnames(my20)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my20)[c(13, 14, 15, 18, 20)], "_20") # gen 200
+colnames(my22)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my22)[c(13, 14, 15, 18, 20)], "_22") # gen 220
+colnames(my24)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my24)[c(13, 14, 15, 18, 20)], "_24") # gen 240
+colnames(my25)[c(13, 14, 15, 18, 20)] <- paste0(colnames(my25)[c(13, 14, 15, 18, 20)], "_25") # gen 250
+
+my <- as.data.frame(my0$medium) # start building up the wider format dataframe with a column from the timepoint 0 subset
+# append the other columns of interest for all other timepoints. 
+my <- cbind(my, my0$ploidy, my0$dilution, my0$set, my0$wo, my0$bc1, my0$bc2, 
+            my0$ppects_0, my10$ppects_10, my15$ppects_15, my20$ppects_20, my22$ppects_22, my24$ppects_24, my25$ppects_25,
+            my0$ppccts_0, my10$ppccts_10, my15$ppccts_15, my20$ppccts_20, my22$ppccts_22, my24$ppccts_24, my25$ppccts_25,
+            my0$cc_0, my10$cc_10, my15$cc_15, my20$cc_20, my22$cc_22, my24$cc_24, my25$cc_25,
+            my0$bc1cts_0, my10$bc1cts_10, my15$bc1cts_15, my20$bc1cts_20, my22$bc1cts_22, my24$bc1cts_24, my25$bc1cts_25,
+            my0$bc2cts_0, my10$bc2cts_10, my15$bc2cts_15, my20$bc2cts_20, my22$bc2cts_22, my24$bc2cts_24, my25$bc2cts_25)
+
+colnames(my) <- unlist(strsplit(x = colnames(my), split = "\\$"))[seq(0,84,2)] # strip out everything up to tand including the $ in the col names
+myevo <- my # pass back to myevo
+rm(my0, my10, my15, my20, my22, my24, my25) # clean up. 
+```
+<br/><br/>
+
+
+
+Add a column with treatment information to each etnry in myevo.
+```{R}
+my$treatment <- as.factor(paste0(my$medium, my$ploidy, my$dilution))# create a treatment column
+my$treatment <- relevel(my$treatment, "CMdiploid0.001") # relevel so that the cmdiploid standar dil treatment is the base factor.
+myevo <- my # pass back to myevo. 
+```
+<br/><br/>
+
+
+
+Rename barcode ids when the same barcode id appears in a treatment multiple times (these will be necessary for the next block). 
+```{R}
+my$bc1 <- as.character(my$bc1); my$bc2 <- as.character(my$bc2) # first convert to character from factor
+
+# CMdiploid0.001 treatment first (add B's only to those barcodes that are repeated ids in the same treatment (but from a different set))
+my$bc1[my$set == "S14" & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")] <- 
+  paste0(my$bc1[my$set == "S14" & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")], "B")
+my$bc2[my$set == "S14" & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")] <- 
+  paste0(my$bc2[my$set == "S14" & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6")], "B")
+
+# CMhaploid0.001 treatment next (all barcodes in S2 need a B, but I type them out for clarity)
+my$bc1[my$set == "S2" & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")] <- 
+  paste0(my$bc1[my$set == "S2" & my$bc1 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")], "B")
+my$bc2[my$set == "S2" & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")] <- 
+  paste0(my$bc2[my$set == "S2" & my$bc2 %in% c("d1A2", "d1A3", "d1A4", "d1A5", "d1A6", "d1A7", "d1H2", "d1H3", "d1H4", "d1H5", "d1H6", "d1H7")], "B")
+
+myevo <- my # pass back to myevo
+```
+<br/><br/>
+
+
+
+Now that barcode ID's are unique within a treatment, create a unique identifier for each entry that contains info regarding its treatment and barcode id (these will be necessary for downstream random effects analysis).
+```{R}
+my$bctID <- as.factor(paste0(my$treatment, my$bc1)) # store bctID as a factor that incorporates barcode id data and treatment data for each row. 
+myevo <- my # pass back to myevo
+```
+<br/><br/>
+
+
+
+Add a field to store the well id of each barcode -- this will ensure that entries for [bc1, bc2] and those for [bc2, bc1] for each evolutionary well can be recognized as coming from the same evolutionary well. 
+```{R}
+my$well <- NA # create an empty well variable
+my$t1 <- NA # barcode 1 id
+my$t2 <- NA # barcode 2 id
+for(i in 1:nrow(my)){  # for each row in the dataframe...
+  my$t1[i] <- paste(sort(my[i,c("bc1", "bc2")])[1]) # barcode 1 id is the firt entry when sorted
+  my$t2[i] <- paste(sort(my[i,c("bc1", "bc2")])[2]) # barcode 2 id is the second entry when sorted
+}
+my$well <- paste0(my$t1, my$t2) # well is ordered concatonation of t1, t2 entries
+my <- my[,1:((ncol(my)) - 2)] # remove the t1, t2 columns, they are no longer needed. 
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Remove entries for barcodes that correspond to those entries removed in the fitness assay dataset (necessary for consistency and for dataset union downstream in this script).
+```{R}
+# remove rows with bc1 id == "d1H10" and "d1A10", this well contained the reference id
+my <- my[my$bc1 != "d1H10",] # rm d1H10 entries themselves
+my <- my[my$bc1 != "d1A10",] # rm the entries for the d1H10 sympatric barcode, d1A10
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Pull in myfa data, summarize across r1:4 deltafit and gen250 fitness data to create one entry from each quad, then append to the myevo dataframe. 
+```{R}
+my1 <- ddply(myfa,~bctID,function(myfa) weighted.mean(myfa$deltafit,myfa$rdeltafit)) # calculate weighted mean deltafitness for 4 reps
+my2 <- ddply(myfa,~bctID,function(myfa) weighted.mean(myfa$ccdeltafit,myfa$rdeltafit))  # calculate weighted mean ccdeltafitness for 4 reps
+my3 <- ddply(myfa,~bctID,function(myfa) mean(myfa$rdeltafit))  # calculate mean reads for 4 reps for deltafitness
+
+my4 <- ddply(myfa,~bctID,function(myfa) weighted.mean(myfa$fit25,myfa$rfit25)) # calculate weighted mean gen250 fitness for 4 reps
+my5 <- ddply(myfa,~bctID,function(myfa) weighted.mean(myfa$ccfit25,myfa$rfit25))  # calculate weighted mean gen250 fitness cc for 4 reps
+my6 <- ddply(myfa,~bctID,function(myfa) mean(myfa$rfit25))  # calculate mean reads for 4 reps for gen250 fitness
+
+mys <- cbind(my1, my2[,2], my3[,2], my4[,2], my5[,2], my6[,2]) # appeand to form a single dataframe
+colnames(mys) <- c("FAbctID", "FAdeltafit", "FAccdeltafit", "FArdeltafit", "FAfit250", "FAccfit250", "FArfit250") # fix colnames
+
+mys <- mys[order(as.character(mys$FAbctID)),] # sort mys by bctID
+my <- my[order(as.character(my$bctID)),] # sort my in the same way
+my <- cbind(my, mys[,2:ncol(mys)]) # column bind the two datasets, ommiting the id column in mys
+myevo <- my # pass back to myevo
+rm(my1, my2, my3, my4, my5, my6, mys) # clean up
+```
+<br/><br/>
+
+
+
+Subset the myevo dataframe such that only a single entry per well is retained. Append fitdif and gen250 fit data for the removed barcode id to the row of its retained sympatric wellmate. 
+```{R}
+my$wid <- paste0(my$well, my$treatment) # create a well id column
+my1 <- NULL # create the seed for a dataset to hold bc1 for each well
+my2 <- NULL # create the seed for a dataset to hold bc2 for each well
+for (i in unique(my$wid)) { # for each unique well id
+  myt <- my[my$wid == i,] # store the entries that matches that ID in a temp dataframe
+  my1 <- rbind(my1, myt[1,]) # pull the row for bc1 from that well
+  my2 <- rbind(my2, myt[2,]) # pull the row for bc2 from that well
+}
+my <- my1 # update my to be just the bc1 dataset
+
+my$FAdeltafit_bc2 <- my2$FAdeltafit # append bc2 deltafitness to my
+my$FAccdeltafit_bc2 <- my2$FAccdeltafit # append bc2 cc deltafitness to my
+my$FArdeltafit_bc2 <- my2$FArdeltafit # append bc2 r deltafitness to my
+my$FAfit250_bc2 <- my2$FAfit250 # append bc2 fit250 to my
+my$FAccfit250_bc2 <- my2$FAccfit250 # append bc2 cc fit250 to my
+my$FArfit250_bc2 <- my2$FArfit250 # append bc2 r fit250 to my
+myevo <- my # pass to myevo
+rm(myt, my1, my2) # clean up
+```
+<br/><br/>
+
+
+
+Calculate barcode 1 proportions at each timepoint in the longitudinal data (+cc and r for this measure). [*bc2 prop is 1-bc1prop] -- intermediate measure
+```{R}
+# the proportions for bc1 @ t0, t10, t15, t20, t22, t24, and t25 in the longitudinal data
+my$p0 <- my$bc1cts_0 / (my$bc1cts_0 + my$bc2cts_0) # p bc1 gen0
+my$p10 <- my$bc1cts_10 / (my$bc1cts_10 + my$bc2cts_10) # p bc1 gen100
+my$p15 <- my$bc1cts_15 / (my$bc1cts_15 + my$bc2cts_15) # p bc1 gen150
+my$p20 <- my$bc1cts_20 / (my$bc1cts_20 + my$bc2cts_20) # p bc1 gen200
+my$p22 <- my$bc1cts_22 / (my$bc1cts_22 + my$bc2cts_22) # p bc1 gen220
+my$p24 <- my$bc1cts_24 / (my$bc1cts_24 + my$bc2cts_24) # p bc1 gen240
+my$p25 <- my$bc1cts_25 / (my$bc1cts_25 + my$bc2cts_25) # p bc1 gen250
+
+# CC: these are already calcualted, see: my$cc_#, where # is the day in 0,10,15,20,22,24,25
+
+# the read values for t0, t10, t15, t20, t22, t24, and t25 in the longitudinal data
+my$rp0 <- 2/((1/(my$bc1cts_0 + my$bc2cts_0)) + (1/(my$ppects_0)))  # r gen0
+my$rp10 <- 2/((1/(my$bc1cts_10 + my$bc2cts_10)) + (1/(my$ppects_10))) # r gen100
+my$rp15 <- 2/((1/(my$bc1cts_15 + my$bc2cts_15)) + (1/(my$ppects_15))) # r gen150
+my$rp20 <- 2/((1/(my$bc1cts_20 + my$bc2cts_20)) + (1/(my$ppects_20))) # r gen200
+my$rp22 <- 2/((1/(my$bc1cts_22 + my$bc2cts_22)) + (1/(my$ppects_22))) # r gen220
+my$rp24 <- 2/((1/(my$bc1cts_24 + my$bc2cts_24)) + (1/(my$ppects_24))) # r gen240
+my$rp25 <- 2/((1/(my$bc1cts_25 + my$bc2cts_25)) + (1/(my$ppects_25))) # r gen250
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate rate of change in proportion for bc1 between adjacent timepoints (+cc and r for this measure). -- intermediate measure
+```{R}
+# change in proportion between adjacent timepoints (correct for generations to get a rate)
+my$dp0_10 <- (my$p10 - my$p0) / 100 # rate from gen0 to gen100
+my$dp10_15 <- (my$p15 - my$p10) / 50 # rate from gen100 to gen150
+my$dp15_20 <- (my$p20 - my$p15) / 50 # rate from gen150 to gen200
+my$dp20_22 <- (my$p22 - my$p20) / 20 # rate from gen200 to gen220
+my$dp22_24 <- (my$p24 - my$p22) / 20 # rate from gen220 to gen240
+my$dp24_25 <- (my$p25 - my$p24) / 10 # rate from gen240 to gen250
+
+# cc change in proportion between adjacent timepoints
+my$ccdp0_10 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_10")]), (x[c( "rp0", "rp10")])))  # cc gen0 to gen100
+my$ccdp10_15 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_10", "cc_15")]), (x[c( "rp10", "rp15")]))) # cc gen100 to gen150
+my$ccdp15_20 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_15", "cc_20")]), (x[c( "rp15", "rp20")]))) # cc gen150 to gen200
+my$ccdp20_22 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_20", "cc_22")]), (x[c( "rp20", "rp22")]))) # cc gen200 to gen220
+my$ccdp22_24 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_22", "cc_24")]), (x[c( "rp22", "rp24")]))) # cc gen220 to gen240
+my$ccdp24_25 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_24", "cc_25")]), (x[c( "rp24", "rp25")]))) # cc gen240 to gen250
+
+# r for change in proporiton between adjacent timepoints
+my$rdp0_10 <-  2/((1/my$rp0) + (1/my$rp10)) # r gen0 to gen100
+my$rdp10_15 <-  2/((1/my$rp10) + (1/my$rp15)) # r gen100 to gen150
+my$rdp15_20 <-  2/((1/my$rp15) + (1/my$rp20)) # r gen150 to gen200
+my$rdp20_22 <-  2/((1/my$rp20) + (1/my$rp22)) # r gen200 to gen220
+my$rdp22_24 <-  2/((1/my$rp22) + (1/my$rp24)) # r gen220 to gen240
+my$rdp24_25 <-  2/((1/my$rp24) + (1/my$rp25)) # r gen240 to gen250
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate magnitude (M-MAX-RATE) and timepoint (T-MAX-RATE) of absolute maximum rate of change in sympatric barcode proportion between adjacent timepoints (+cc and r for this measure)
+```{R}
+# calculate magnitude of absolute maximum rate of change in sympatric barcode proportion between adjacent timepoints
+my$mmaxrate <- apply(X = abs(my[,c("dp0_10", "dp10_15", "dp15_20", "dp20_22", "dp22_24", "dp24_25")]), 
+                     MARGIN = 1, FUN = max, na.rm = T) 
+
+# calculate the time of absolute maximum rate of change in sympatric barcode proportion between adjacent timepoints,
+# use that value to obtain cc and r values for this measure and for mmaxrate from the appropriate locations in the dataset. 
+for(i in 1:nrow(my)){
+  my$tmaxrate[i] <- which(abs(my[i,c("dp0_10", "dp10_15", "dp15_20", "dp20_22", "dp22_24", "dp24_25")]) == my[i,"mmaxrate"]) # the time point
+  my$ccmaxrate[i] <- as.numeric(my[i,c("ccdp0_10", "ccdp10_15", "ccdp15_20", "ccdp20_22", "ccdp22_24", "ccdp24_25")][my$tmaxrate[i]]) # cc at that time point
+  my$rmaxrate[i] <- as.numeric(my[i,c("rdp0_10", "rdp10_15", "rdp15_20", "rdp20_22", "rdp22_24", "rdp24_25")][my$tmaxrate[i]]) # r at that time point. 
+  my$ccmaxrate_t0[i] <- weighted.mean(cbind(my$ccmaxrate[i], my$cc_0[i]), cbind(my$rmaxrate[i], my$rp0[i])) # cc for max rate of change and t0 timepoints
+}
+my$tmaxrate[my$tmaxrate == 1] <- 100; my$tmaxrate[my$tmaxrate == 2] <- 150; my$tmaxrate[my$tmaxrate == 3] <- 200; # fix times appropriately
+my$tmaxrate[my$tmaxrate == 4] <- 220; my$tmaxrate[my$tmaxrate == 5] <- 240; my$tmaxrate[my$tmaxrate == 6] <- 250;   
+my$rmaxrate_rt0 <- 2/((1/my$rmaxrate)+(1/my$rp0)) # create an additional reads value for max rate of change in bc prop for models that also incorporate the barcode initial proportions
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate change in proportion for bc1 between t0 and all other timepoints (+cc and r for this measure). -- intermediate measure
+```{R}
+# change in proportion between initial and other timepoints
+my$dpz_10 <- (my$p10 - my$p0) # dp bc1 gen0 to gen100
+my$dpz_15 <- (my$p15 - my$p0) # dp bc1 gen0 to gen150
+my$dpz_20 <- (my$p20 - my$p0) # dp bc1 gen0 to gen200
+my$dpz_22 <- (my$p22 - my$p0) # dp bc1 gen0 to gen220
+my$dpz_24 <- (my$p24 - my$p0) # dp bc1 gen0 to gen240
+my$dpz_25 <- (my$p25 - my$p0) # dp bc1 gen0 to gen250
+
+# cc change in proportion between initial and other timepoints
+my$ccdpz_10 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_10")]), (x[c( "rp0", "rp10")]))) # cc gen0 to gen100
+my$ccdpz_15 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_15")]), (x[c( "rp0", "rp15")]))) # cc gen0 to gen150
+my$ccdpz_20 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_20")]), (x[c( "rp0", "rp20")]))) # cc gen0 to gen200
+my$ccdpz_22 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_22")]), (x[c( "rp0", "rp22")]))) # cc gen0 to gen220
+my$ccdpz_24 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_24")]), (x[c( "rp0", "rp24")]))) # cc gen0 to gen240
+my$ccdpz_25 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c( "cc_0", "cc_25")]), (x[c( "rp0", "rp25")]))) # cc gen0 to gen250
+
+# r for change in proporiton between adjacent timepoints
+my$rdpz_10 <-  2/((1/my$rp0) + (1/my$rp10)) # r gen0 to gen100
+my$rdpz_15 <-  2/((1/my$rp0) + (1/my$rp15)) # r gen0 to gen150
+my$rdpz_20 <-  2/((1/my$rp0) + (1/my$rp20)) # r gen0 to gen200
+my$rdpz_22 <-  2/((1/my$rp0) + (1/my$rp22)) # r gen0 to gen220
+my$rdpz_24 <-  2/((1/my$rp0) + (1/my$rp24)) # r gen0 to gen240
+my$rdpz_25 <-  2/((1/my$rp0) + (1/my$rp25)) # r gen0 to gen250
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate magnitude and timepoint (T-MAX-DEV) of magnitude (M-MAX-DEV) of the mamaximum deviation in sympatric barcode proportion between timepoint 0 and all other timepoints (+cc and r for this measure).
+```{R}
+# calculate magnitude of maximum deviation in sympatric barcode proportion between t0 and all other timepoints
+my$mmaxdev <- apply(X = abs(my[,c("dpz_10", "dpz_15", "dpz_20", "dpz_22", "dpz_24", "dpz_25")]), 
+                     MARGIN = 1, FUN = max, na.rm = T) # calculate magnitude of maxdev in bc prop from initial conditions
+
+# calculate the time of max dev max in bc proportion, and use that value to obtain cc and r values for this measure and for mmaxdev 
+for(i in 1:nrow(my)){
+  my$tmaxdev[i] <- which(abs(my[i,c("dpz_10", "dpz_15", "dpz_20", "dpz_22", "dpz_24", "dpz_25")]) == my[i,"mmaxdev"]) # the time point
+  my$ccmaxdev[i] <- as.numeric(my[i,c("ccdpz_10", "ccdpz_15", "ccdpz_20", "ccdpz_22", "ccdpz_24", "ccdpz_25")][my$tmaxdev[i]]) # cc at that time point
+  my$rmaxdev[i] <- as.numeric(my[i,c("rdpz_10", "rdpz_15", "rdpz_20", "rdpz_22", "rdpz_24", "rdpz_25")][my$tmaxdev[i]]) # r at that time point. 
+  my$ccmaxdev_t0[i] <- weighted.mean(cbind(my$ccmaxdev[i], my$cc_0[i]), cbind(my$rmaxdev[i], my$rp0[i])) # cc for maxdev and t0 timepoints
+}
+my$tmaxdev[my$tmaxdev == 1] <- 100; my$tmaxdev[my$tmaxdev == 2] <- 150; my$tmaxdev[my$tmaxdev == 3] <- 200; # fix times appropriately
+my$tmaxdev[my$tmaxdev == 4] <- 220; my$tmaxdev[my$tmaxdev == 5] <- 240; my$tmaxdev[my$tmaxdev == 6] <- 250;  
+my$rmaxdev_rt0 <- 2/((1/my$rmaxdev)+(1/my$rp0)) # create an additional reads value for maxdev for models that also incorporate the barcode initial proportions
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate the magnitude of the inequality in barcode proportion at each timepoint -- intermediate measures
+Use this to get: magnitude max inequality (M-MAX-DIFF), time max inequality (T-MAX-DIFF), cc @tmax inequality, r @tmax inequality 
+```{R}
+# calculate barcode proportion inequality at each timepoint as abs difference from a 0.5:0.5 split. 
+my[, c("diff0","diff10","diff15","diff20","diff22","diff24","diff25")] <- abs(my[, c("p0","p10","p15","p20","p22","p24","p25")] - 0.5)
+
+# calculate magnitude of maxdev in bc prop from initial conditions
+my$mmaxdiff <- apply(X = my[,c("diff0","diff10","diff15","diff20","diff22","diff24","diff25")], 
+                     MARGIN = 1, FUN = max, na.rm = T) 
+# calculate time of maxdev in bc prop from initial conditions,and use that value to obtain cc and r values for this measure and for mmaxdiff 
+for(i in 1:nrow(my)){
+  my$tmaxdiff[i] <- which(my[i,c("diff0","diff10","diff15","diff20","diff22","diff24","diff25")] == my[i,"mmaxdiff"]) # the time point
+  my$ccmaxdiff[i] <- as.numeric(my[i,c("cc_0", "cc_10", "cc_15", "cc_20", "cc_22", "cc_24", "cc_25")][my$tmaxdiff[i]]) # cc at that time point
+  my$rmaxdiff[i] <- as.numeric(my[i,c("rp0", "rp10", "rp15", "rp20", "rp22", "rp24", "rp25")][my$tmaxdiff[i]])# r at that time point. 
+  my$ccmaxdiff_t0[i] <- weighted.mean(cbind(my$ccmaxdiff[i], my$cc_0[i]), cbind(my$rmaxdiff[i], my$rp0[i])) # cc for maxdiff and t0 timepoints
+}
+my$tmaxdiff[my$tmaxdiff == 1] <- 0; my$tmaxdiff[my$tmaxdiff == 2] <- 100; my$tmaxdiff[my$tmaxdiff == 3] <- 150; # fix times appropriately
+my$tmaxdiff[my$tmaxdiff == 4] <- 200; my$tmaxdiff[my$tmaxdiff == 5] <- 220; my$tmaxdiff[my$tmaxdiff == 6] <- 240; my$tmaxdiff[my$tmaxdiff == 7] <- 250; 
+my$rmaxdiff_rt0 <- 2/((1/my$rmaxdiff)+(1/my$rp0)) # create an additional reads value for maxdiff for models that also incorporate the barcode initial proportions
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate barcode fixation (really pseudofixation of p >= 0.95)
+```{R}
+# Set some control values
+ft <- 0.45  # fixation threshold, anything that reaches and remains at this value is called 'fixed' (this corresponds to 95% --> 0.95 - 0.5 = 0.45)
+st <- 0.25  # start prop threshold, anything  that starts greater is ommited. (this corresponds to 75% --> 0.75 - 0.5 = 0.25)
+my$fixed <- FALSE; my$fixednsl <- FALSE # create columns to hold the fixed boolean value (nsl corresponds to no starting limit on proportion)
+my$fixed[my$diff0 <= st & my$diff25 >= ft] <- TRUE # calculated fixed
+my$fixednsl[my$diff25 >= ft] <- TRUE # calcualte fixed with no starting limit
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Calculate accumulated change in barcode proportion (+cc and r for this measure) for each evolutionary well. This measure captures the total change in barcode proportion observed from t0 to t10 to t15 to t20 to t22 to t24 to t25 in each well. 
+```{R}
+# accumulated change in barcode proporiton -- captures 'total dynamics' in well
+my$tcc <- rowSums(cbind(abs(my$dp0_10), abs(my$dp10_15), abs(my$dp15_20), abs(my$dp20_22), abs(my$dp22_24), abs(my$dp24_25)), na.rm = T)
+my$cctcc <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c("ccdp0_10", "ccdp10_15","ccdp15_20","ccdp20_22","ccdp22_24","ccdp24_25")]),
+                                                    (x[c("rdp0_10", "rdp10_15","rdp15_20","rdp20_22","rdp22_24","rdp24_25")]))) #cc for the same
+my$rtcc <- 6/((1/my$rdp0_10)+ (1/my$rdp10_15)+ (1/my$rdp15_20)+ (1/my$rdp20_22)+ (1/my$rdp22_24)+ (1/my$rdp24_25)) # reads for the same. 
+my$cctcc_t0 <- apply(my, 1, function(x) weighted.mean(as.numeric(x[c("cctcc", "cc_0")]), (x[c("rtcc", "rp0")]))) #cc for the same averaged with cc0 for model with 0 as predictor
+my$rtcc_rt0 <- 2/((1/my$rtcc)+(1/my$rp0)) # create an additional reads value for total dynamics for models that also incorporate the barcode initial proportions
+
+myevo <- my # pass to myevo
+```
+<br/><br/>
+
+
+
+Finished processing the longitudinal evolutionary data for analysis and visualization, save. 
+```{R}
+myevo$treatment <- relevel(myevo$treatment, ref = "CMdiploid0.001")
+save(myevo, file = "myevo.Rdata") # save the myevo dataframe for downstream use. 
+```
+
+
+
+
+
+
+
+
+

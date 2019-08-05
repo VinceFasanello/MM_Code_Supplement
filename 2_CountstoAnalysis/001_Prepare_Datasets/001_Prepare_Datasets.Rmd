@@ -1,0 +1,257 @@
+---
+title: "001_Prepare_Datasets.rmd"
+output:
+  html_document:
+    df_print: paged
+---
+
+***
+#### Description:  
+
+|      This script takes inputs in the form of counts matrices and metadata control files and produces full demultiplexed and formatted 
+|      dataframes with all calculated fields necessary for analysis and visualization. Briefly, this script first takes data from the 
+|      001 seqeunced library, subsets the full dataset into POC fitness assays (92 barcodes per assay), single-barcode cross-
+|      contamination controls, and two-barcdoe cross-contamination controls, and processes the data to produce a POC fitness 
+|      assay dataset for analysis and visualization.  
+
+
+***
+#### Inputs:  
+
+1.  001_Metadata.csv -- Control file containing metadata for the samples in the sequenced library 001  
+2.  001_counts.expected.Rdata -- 001 library derived Counts matrix containing expected counts values for MOBY barcode IDs (row) by sample (column)  
+3.  001_counts.unexpected.Rdata -- 001 library derived Counts matrix containing cross contamination counts values for MOBY barcode IDs (row) by sample (column)  
+
+
+***
+#### Outputs:  
+
+1. poc92 -- a fully formated dataframe for statistical analysis and visualization of the POC fitness assay data  
+2. poc2 -- a fully fomrated dataframe for statistical analysis and visualizaiton of the single-barcode cross-contam control data  
+2. poc1 -- a fully fomrated dataframe for statistical analysis and visualizaiton of the two-barcode cross-contam control data  
+
+
+***
+# Setup Script
+Prepare the workspace, set global options, set directories.
+```{r}
+rm(list = ls()) # clear workspace
+knitr::opts_chunk$set(tidy = TRUE) # set global knitr options.
+options(scipen = 999) # turn off scientific notation
+dir_in <- "001_Raw_Data_Metadata" # input directory
+```
+<br/><br/>
+
+
+
+
+
+***
+# Load Seqeuncing Library Datasets 
+Load and prepare metadata files for the 001 sequenced library
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir_in)
+mdata <- read.csv(file = "001_Metadata.csv", header = TRUE, stringsAsFactors = FALSE) # metadata
+```
+<br/><br/>
+
+
+
+Load and prepare counts datasets for the 001 sequenced library. 
+```{R, warning = FALSE}
+setwd("..")
+setwd(dir_in)
+load(file = "001_counts.expected.Rdata") # expected counts
+ects <- counts.expected; rm(counts.expected)
+ects <- ects[1:92,] # remove primer pair counts column.
+ects <- ects + 1 # add one pseudocount for 0-count handling
+ects <- t(ects) # transpose to match metadata format
+
+load(file = "001_counts.unexpected.Rdata") # cross-contamination counts
+ccts <- counts.unexpected; rm(counts.unexpected)
+ccts <- ccts[1:92,] # remove primer pair counts column.
+ccts <- ccts + 1 # add one pseudocount for consistency with ects dataset
+ccts <- t(ccts) # transpose to match metadata format
+```
+<br/><br/>
+
+
+
+Combine metadata with counts data, and calculate primer pair (pp) summary statistics for the 001 sequenced library. 
+```{R}
+mdata$ppects <- rowSums(ects, na.rm = T) # primer pair expected counts
+mdata$ppccts <- rowSums(ccts, na.rm = T) # primer pair cross-contam counts
+poc <- cbind(mdata, ects) # append data to metadata
+
+poc92 <- poc[poc$bcpwell == 92,] # split off 92 bc/well experiments
+poc2 <- poc[poc$bcpwell == 2,] # split off 2 bc/well experiments
+poc1 <- poc[poc$bcpwell == 1,] # split off 1 bc/well experiments
+
+rm(ccts, ects, mdata, poc) # clean up.
+```
+<br/><br/>
+
+
+
+
+
+***
+# Process the 92 barcode POC fitness assay data for analysis and visualization
+Create, arrange, and populate columns for barcode ID and barcode counts for all 92 barcodes present in each pp, then convert the one-pp-per-row dataset to a dataset format with data for a single barcode (at a single fitness assay timepoint) per row. Remove entries for the barcode that was selected as the reference. Finally, Subset the dataset into two datasets corresponding to fitness assay initial and fitness assay final timepoints, then combine these datasets into a single dataframe such that each row includes initial and final timepoint data for a single barcode.
+```{R}
+my <- poc92 # use a placeholder dataset name
+my$exp[((nrow(my)/2) + 1): nrow(my)] <- my$exp[1:(nrow(my)/2)] # assign exp to be replicates
+my2 <- my[,c(1:3,96,97,94,188,4,98)] # break off the data for barcode 1 (plus the reference d1H10)
+colnames(my2)[c(6,7,8,9)] <- c("refid", "refcts", "bcid", "bccts") # rename column ids for append below
+
+# run a for loop that appends the data for each barcode (n=92) to the bottom of the growing dataset. 
+for (i in 5:95) { 
+  myt <-  my[,c(1:3,96,97,94,188,i,i+94)]
+  colnames(myt)[c(6,7,8,9)] <- c("refid", "refcts", "bcid", "bccts") # rename column ids for append below
+  my2 <- rbind(my2, myt) # bind the new dataframe to the bottom of the growing dataframe. 
+}
+rm(my, myt) # clean up
+my2<- my2[my2$bcid != "d1H10",]# remove the entries corresponding to the reference
+
+
+my0 <- my2[my2$atp == 0,] # break off time 0...
+my2 <- my2[my2$atp == 2,] # ...and time 2 data
+
+# build the consensus dataframe
+my <- as.data.frame(cbind(my0$exp, my0$bcpwell, my0$refid, my0$bcid)) # get the common columns
+colnames(my) <- c("exp", "bcpwell", "refid", "bcid") # fix names
+colnames(my0) <- paste0(colnames(my0), "_i") # append an i to timepoint 0 column names
+colnames(my2) <- paste0(colnames(my2), "_f") # apeend an f to timepoint 2 column names
+my <- cbind(my,
+                my0$ppects_i, my2$ppects_f, 
+                my0$ppccts_i, my2$ppccts_f,
+                my0$refcts_i, my2$refcts_f,
+                my0$bccts_i, my2$bccts_f) # build the full dataframe
+colnames(my) <- c(colnames(my)[1:4], "ppects_i", "ppects_f", "ppccts_i",
+                      "ppccts_f", "refcts_i", "refcts_f", "bccts_i",  "bccts_f") # fix names again
+poc92 <- my # pass to poc92
+rm(my0, my2) # clean up
+```
+<br/><br/>
+
+
+
+Calculate: fitness for each barcode from the POC fitness assay initial and final data (+cross-contamination and reads values for the initial timepoint, the final timepoint, and the calculated fitness value incorporating data from both the initial and final timepoint).
+```{R} 
+my$r_i <- 2/((1/my$bccts_i)+(1/my$ppects_i)) # reads time 0
+my$r_f <- 2/((1/my$bccts_f)+(1/my$ppects_f)) # reads time 2
+my$r <- 2/((1/my$r_i)+(1/my$r_f)) # reads for the rw value
+
+my$cc_i <- NA # no cross contamination calculation for 92 barcode wells. 
+my$cc_f <- NA # no cross contamination calculation for 92 barcode wells. 
+my$cc <- NA # no cross contamination calculation for 92 barcode wells. 
+
+my$rw <-  exp((log(my$bccts_f / my$refcts_f) 
+                           - log(my$bccts_i /  my$refcts_i)) / 20) # calculate relative fitness
+poc92 <- my # pass to poc92
+```
+<br/><br/>
+
+
+
+Save the poc92 dataset for analysis in the next script.
+```{R}
+save(poc92, file = "poc92.Rdata") # save the dataset for stats and vis. 
+```
+<br/><br/>
+
+
+
+
+
+***
+# Process the 2 barcode POC fitness assay data for cross contamination rate analysis and visualization
+Create, arrange, and populate columns for barcode counts for the two barcodes present in each pp (here only one well per pp).
+```{R}
+my <- poc2 # use a placeholder dataset
+my$exp[((nrow(my)/2) + 1): nrow(my)] <- my$exp[1:(nrow(my)/2)] # assign exp to be replicates
+my$bc1cts <- NA # create columns to hold barcode 1...
+my$bc2cts <- NA # ...and barcode 2 counts. 
+my <- my[,c(1:3,96,97,4,5,190,191, 98:189)] # rearrange and select columns to retain. 
+# run a loop that assigns barcode 1 and barcode 2 counts from the appropriate data column in each row.
+for (i in 1:nrow(my)) {
+  my$bc1cts[i] <- my[i,which(colnames(my) == my$bc1[i])] # barcode 1 counts
+  my$bc2cts[i] <- my[i,which(colnames(my) == my$bc2[i])] # barcode 2 counts
+}
+my <- my[,1:9] # retain only the final columns of interest (remove extraneous data)
+poc2 <- my # pass to poc2
+```
+<br/><br/>
+
+
+
+# Calculate: mean cross contam rate and reads for the 2-barcode per well dataset.
+```{R}
+my$r <- my$ppects # reads here are total expected primer pair reads
+# cross contam rate is contam / number of potentially detectable contaminants. 
+my$cc <- (my$ppccts / (my$ppects + my$ppccts))/(92 - my$bcpwell) 
+poc2 <- my # pass to poc2
+```
+<br/><br/>
+
+
+
+Save the poc2 dataset.
+```{R}
+save(poc2, file = "poc2.Rdata") # save the dataset for stats and vis. 
+```
+<br/><br/>
+
+
+
+
+
+***
+# Process the 1 barcode POC fitness assay data for cross contamination rate analysis and visualization
+Create, arrange, and populate columns for barcode counts for the one barcode present in each pp (here only one well per pp).
+```{R}
+my <- poc1 # use a placeholder dataframe
+my$exp[((nrow(my)/2) + 1): nrow(my)] <- my$exp[1:(nrow(my)/2)] # assign exp to be replicates
+my$bc1cts <- NA # create columns to hold barcode 1 counts
+my <- my[,c(1:3,96,97,4,190, 98:189)] # rearrange and select columns to retain. 
+# run a loop that assigns barcode 1 counts from the appropriate data column in each row.
+for (i in 1:nrow(my)) {
+  my$bc1cts[i] <- my[i,which(colnames(my) == my$bc1[i])]
+}
+my <- my[,1:7] # retain only the final columns of interest (remove extraneous data)
+poc1 <- my # pass to poc1
+```
+<br/><br/>
+
+
+
+Calculate: mean cross contam rate and reads for the 1 barcode dataset
+```{R}
+my$r <- my$ppects # reads here are total expected primer pair reads
+# cross contam rate is contam / number of potentially detectable contaminants. 
+my$cc <- (my$ppccts / (my$ppects + my$ppccts))/(92 - my$bcpwell) 
+poc1 <- my # pass to poc1
+```
+<br/><br/>
+
+
+
+Save the poc1 dataset. 
+```{R}
+save(poc1, file = "poc1.Rdata") # save the dataset for stats and vis. 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
