@@ -1,13 +1,11 @@
-# File_S3
- Methods Manuscript File_S3
-
-Readme for File_S3: coding supplement
+# MM_Code_Supplement
+Methods Manuscript Code Supplement
 
 **Description:**  
-The zipped directory, File_S3, contains all raw data, processed data, metadata files, and R code necessary to reproduce the results presented in the main text.
+The directory, MM_Code_Supplement, contains all processed data, metadata files, and R code necessary to reproduce the results presented in the main text. Raw data available from NCBI SRA (SRA Accession: PRJNA555990).
 
 **Instructions:**  
-The analysis pipeline is broken down in to three steps. Step 1 converts raw fastQ files to experiment by barcode matrices. Step 2 takes the matrices from Step 1 as inputs and produces fully formatted dataframes for statistical analysis and visualization. Step 3 conducts analyses and produces results, tables, and figures in the order that they are presented in the main text. Within the supplementary file S3, we provide all the necessary files and correct directory architecture to reproduce our study in full, from raw FastQ files received from the sequencer all the way to final results and visualizations. The final products of Steps 1 and 2, and an html formatted version of the code + results from step 3 are also included in file S3 for review. Step by step instructions are provided below for several possible uses of the contents of file S3.
+The analysis pipeline is broken down in to three steps. Step 1 converts raw fastQ files to experiment by barcode matrices. Step 2 takes the matrices from Step 1 as inputs and produces fully formatted dataframes for statistical analysis and visualization. Step 3 conducts analyses and produces results, tables, and figures in the order that they are presented in the main text. Within the supplementary file S3, we provide all the necessary files and correct directory architecture to reproduce our study in full, from raw FastQ files received from the sequencer all the way to final results and visualizations. The final products of Steps 1 and 2, and an html formatted version of the code + results from step 3 are also included in file S3 for review. Step by step instructions are provided below for several possible uses of the contents of the MM_Code_Suuplement.
 
 **If you want to generate the raw counts matrices (The products of Step 1, described above) for viewing or for use as inputs for the following text block…** First, Download (NCBI LINK)  the zipped Fastq files and place them in the 001_IonTorrent_Zipped, 002_IonTorrent_Zipped, 002_Reruns_IonTorrent_Zipped folders. Next, unzip the compressed files and move them to the 001_IonTorrent_FastQ, 002_IonTorrent_FastQ, and 002_Reruns_IonTorrent_FastQ directories, respectively. Open and run the file named “001_YEE-fastq-to-counts.R” in its entirety. This script will generate intermediate data frames from the FastQ files and save them in the 001_IonTorrent_DF directory. The script will also generate the raw counts matrices for library 001 (experiments X MOBY barcode IDs); three matrices will be produced: counts – all counts recovered, counts.expected – same as counts, but NA cells where no counts are expected based on the experimental design, counts.unexpected – same as counts, but NA cells where counts were expected based on the experimental design. Run the script “002_YEE-fastq-to-counts.R” to generate raw counts matrices for the 002 library. Run the script “002_Reruns_YEE-fastq-to-counts.R” to generate raw counts matrices for the 002 Reruns library. NOTE: if you don’t want to generate new raw counts.expected and counts.unexpected matrices, versions are provided for review for libraries 001, 002 and 002 Reruns in the 001_Raw_Data_Metadata and 002_Raw_Data_Metadata directories. NOTE 2: if your goal is to generate new counts data for use in the next text block, be sure to copy the outputs from this step (they will be in directories 001_Counts, 002_Counts, 002_Reruns_Counts) to the 001_Raw_Data_Metadata and 002_Raw_Data_Metadata directories, replacing the existing files in those locations; ensure that file names for the replacements match exactly the files they are replacing.
 
@@ -19,7 +17,7 @@ The analysis pipeline is broken down in to three steps. Step 1 converts raw fast
 
 
 
-**Structure for File_S3 directory (with brief descriptions):**  
+**Structure for MM_Code_Supplement directory (with brief descriptions):**  
 Directory architecture and included files described briefly below. Full descriptions of code inputs and outputs can be found in the  headers of the “.r” and “.rmd” files included within these directories 
 1. **1_FastQtoCounts – Analysis step one directory**
    - 001 – library 001 analysis step one files.
@@ -97,7 +95,7 @@ Directory architecture and included files described briefly below. Full descript
    - Analyze.html – r notebook html knitted output.
    - Analyze.nb.html – r notebook html helper file.
    - Analyze.rmd – r code for all published analyses and data figures and tables.
-4. **File_S3.Rproj – R project file – Code files should be opened within this project.**
+4. **Code_Supplement.Rproj – R project file – Code files should be opened within this project.**
 5. **Readme.md – this file.**
 
 
