@@ -216,7 +216,7 @@ mywidth <- 3.3
 p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
   geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
   geom_rug(alpha = myptalpha)+
-  xlim(c(-0.06, 0.06)) +
+  #xlim(c(-0.06, 0.06)) +
   ylim(c(NA,15)) +
   geom_vline(xintercept = 0, linetype = "dashed", color = myhighlight) +
   scale_color_manual(values =mypalette, guide = FALSE) + 
@@ -231,7 +231,10 @@ p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) +
   theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
   theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
   theme(legend.title = element_text(size = mytextsize, face = "bold"))+
-  theme(legend.text = element_text(size = mytextsize))
+  theme(legend.text = element_text(size = mytextsize))+
+  scale_x_continuous(breaks = seq(-0.06,0.06,by=0.01), 
+                     labels = c("-0.06", "", "-0.04", "", "-0.02", "", "0", "", "0.02", "", "0.04", "", "0.06"),
+                     limits = c(-0.06, 0.06))
 p
 # -----------------------------------------------------------------------------
 
@@ -618,7 +621,7 @@ mybinwidth <- 0.01
 
 mytitle <- NULL
 myylab <- "Count"
-myxlab <- "Fitness Change"
+myxlab <- "Fitness change"
 
 myhighlight1 <- "black"
 myhighlight2 <- setpalette[1]
@@ -645,13 +648,18 @@ p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) +
   theme(legend.position= c(0.8,0.8)) +
   labs(fill = "Significance") +
   ggtitle(mytitle)+ ylab(myylab)+ xlab(myxlab) +
-  geom_hline(yintercept=-0.01, colour="white", size=1.01)+
+  geom_hline(yintercept=0.01, colour="white", size=1.01)+
   theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
   theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
   theme(legend.title = element_text(size = mytextsize, face = "bold"))+
-  theme(legend.text = element_text(size = mytextsize))
+  theme(legend.text = element_text(size = mytextsize))+
+  scale_x_continuous(breaks = seq(-0.1,0.5,by=0.05),
+                     labels = c("-0.1", "", "0", "", "0.1", "", "0.2", "", "0.3", "", "0.4", "", "0.5"),
+                     limits = c(-0.05, 0.45))+
+  scale_y_continuous(breaks = seq(0,25,by=5),
+                     limits = c(0,25))
 p
 # -----------------------------------------------------------------------------
 
@@ -710,12 +718,12 @@ tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, sho
 # Visualize -------------------------------------------------------------------
 mymod <- lmer((deltafit) ~ (ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # problems with convergence here...solved with an optimizer and some extra iterations.
 myx <- my$treatment
-myy <- my$deltafit*100
+myy <- my$deltafit
 myr <- my$rdeltafit
 myc <- my$treatment
 
 mytitle <- NULL
-myylab <- "Fitness Change"
+myylab <- "Fitness change"
 myxlab <- "Treatment"
 
 myoutline <-  "grey20"
@@ -748,11 +756,15 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme(legend.position="none") +
   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
   scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  scale_y_continuous(breaks = seq(-.25,.55,by=.05),
+                     labels = c("", "-0.2", "", "-0.1", "", "0", "", "0.1", "", "0.2", "", "0.3", "", "0.4", "", "0.5", ""),
+                     limits = c(-.25, .55))+
   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.text.y = element_text(size = 8, angle = 0))+
   theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,5,6), y=c(14,55,15,46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
+  annotate("text", x=c(2,3,5,6), y=c(.14,.55,.15,.46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
+  
 p 
 # -----------------------------------------------------------------------------
 
