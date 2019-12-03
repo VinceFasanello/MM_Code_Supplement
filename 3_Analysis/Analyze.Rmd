@@ -712,7 +712,7 @@ my4 <- my[my$rep == 4,]; colnames(my4) <- paste0(colnames(my4), "_4") # r4
 my <- cbind(my1, my2, my3, my4) # zip
 
 my$sedeltafit <- apply(cbind(my$deltafit, my$deltafit_2, my$deltafit_3, my$deltafit_4), 1, sjstats::se)
-
+  
 my$medcount <- apply(cbind(my$bc1cts_i_0r1,my$bc1cts_i_0r2,my$bc1cts_i_0r3,my$bc1cts_i_0r4,
                   my$bc1cts_f_0r1, my$bc1cts_f_0r2, my$bc1cts_f_0r3, my$bc1cts_f_0r4,
                   my$bc1cts_i, my$bc1cts_i_2, my$bc1cts_i_3, my$bc1cts_i_4,
@@ -748,11 +748,20 @@ my$medprop <- apply(cbind(my$prop_i_0r1,my$prop_i_0r2,my$prop_i_0r3,my$prop_i_0r
                   1, median, na.rm = T)
 
 
-my$mnfit250 <- apply(cbind(my$fit25, my$fit25_2, my$fit25_3, my$fit25_4),
-                       1, mean, na.rm = T)
 
-my$mnfit0 <- apply(cbind(my$fit0, my$fit0_r2, my$fit0_r3, my$fit0_r4),
-                   1, mean, na.rm = T)
+my$mnfit0 <- NA
+for(i in 1:nrow(my)){
+  my$mnfit0[i] <- weighted.mean(my[i,c("fit0r1", "fit0r2", "fit0r3", "fit0r4")],
+                                    my[i,c("rfit0r1", "rfit0r2", "rfit0r3", "rfit0r4")], na.rm = T)
+}
+
+my$mnfit250 <- NA
+for(i in 1:nrow(my)){
+  my$mnfit250[i] <- weighted.mean(my[i,c("fit25", "fit25_2", "fit25_3", "fit25_4")],
+                                    my[i,c("rfit25", "rfit25_2", "rfit25_3", "rfit25_4")], na.rm = T)
+}
+
+
 
 my$mndeltafit <- NA
 for(i in 1:nrow(my)){
@@ -791,11 +800,9 @@ car::vif(mymod) # VIF looks good now (SAFE TO IGNORE FACTORS with > 3 levels -- 
 # now begin model reduction (remove least significant term first until only significant terms remain.)
 summary(mymod) # remove treatment first as it has the highest p-value (look at lowest p-value among levels)
 AIC(mymod)
-anova(mymod)
 
 mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop)), weights = my$mnrdeltafit)
-car::vif(mymod) # VIF looks good now 
 summary(mymod)
 AIC(mymod)
 ```
@@ -804,9 +811,15 @@ DW
 ```{R}
 my3 <- myfa[order(myfa$bctID),]
 
-my3$medcount <- apply(cbind(my3$bc1cts_i_0r1,my3$bc1cts_i_0r2,my3$bc1cts_i_0r3,my3$bc1cts_i_0r4,
-                  my3$bc1cts_f_0r1, my3$bc1cts_f_0r2, my3$bc1cts_f_0r3, my3$bc1cts_f_0r4,
-                  my3$bc1cts_i, my3$bc1cts_f),
+my3$mncount0i <- NA
+my3$mncount0f <- NA
+for(i in 1:nrow(my3)){
+  my3$mncount0i[i] <- weighted.mean(my3[i,c("bc1cts_i_0r1", "bc1cts_i_0r2", "bc1cts_i_0r3", "bc1cts_i_0r4")],
+                                    my3[i,c("r0ir1", "r0ir2", "r0ir3", "r0ir4")], na.rm = T)
+  my3$mncount0f[i] <- weighted.mean(my3[i,c("bc1cts_f_0r1", "bc1cts_f_0r2", "bc1cts_f_0r3", "bc1cts_f_0r4")],
+                                    my3[i,c("r0fr1", "r0fr2", "r0fr3", "r0fr4")], na.rm = T)
+}
+my3$medcount <- apply(cbind(my3$mncount0i, my3$mncount0f, my3$bc1cts_i, my3$bc1cts_f),
                   1, median, na.rm = T)
 
 
@@ -823,27 +836,29 @@ my3$prop_f_0r4 <- my3$bc1cts_f_0r4 / (my3$bc1cts_f_0r4 + my3$bc2cts_f_0r4)
 my3$prop_i_250r1 <- my3$bc1cts_i / (my3$bc1cts_i + my3$bc2cts_i)
 my3$prop_f_250r1 <- my3$bc1cts_f / (my3$bc1cts_f + my3$bc2cts_f)
 
-
-my3$medprop <- apply(cbind(my3$prop_i_0r1,my3$prop_i_0r2,my3$prop_i_0r3,my3$prop_i_0r4,
-                  my3$prop_f_0r1, my3$prop_f_0r2, my3$prop_f_0r3, my3$prop_f_0r4,
-                  my3$prop_i_250r1, my3$prop_f_250r1),
+my3$mnprop0i <- NA
+my3$mnprop0f <- NA
+for(i in 1:nrow(my3)){
+  my3$mnprop0i[i] <- weighted.mean(my3[i,c("prop_i_0r1", "prop_i_0r2", "prop_i_0r3", "prop_i_0r4")],
+                                    my3[i,c("r0ir1", "r0ir2", "r0ir3", "r0ir4")], na.rm = T)
+  my3$mnprop0f[i] <- weighted.mean(my3[i,c("prop_f_0r1", "prop_f_0r2", "prop_f_0r3", "prop_f_250r1")],
+                                    my3[i,c("r0fr1", "r0fr2", "r0fr3", "r0fr4")], na.rm = T)
+}
+my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$prop_f_250r1),
                   1, median, na.rm = T)
 
+
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-car::vif(mymod) # remove medcount as it captures basically the same thing as rdeltafit, but in a weaker way.
+car::vif(mymod) # VIF looks okay, proceed to model reduction
+summary(mymod) # rdeltafit is first term removed
 
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-car::vif(mymod) # VIF looks good now, proceed to model reduction
-summary(mymod) # medprop is out first...
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+summary(mymod) # remove medprop next
 
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) # rdeltafit is out next...
-
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) 
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+summary(mymod) # remove 
+AIC(mymod)
 ```
-CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER 
-
 NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
 
 
