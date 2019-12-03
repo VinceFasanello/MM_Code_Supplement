@@ -144,7 +144,7 @@ expand_residuals <- function(model, reads){
 
 # log transformation for modeling. 
 log_transform <- function(myvar){
-  log(((myvar - min(myvar))/(max(myvar) - min(myvar))) + 1) 
+  myvar <- log(((myvar - min(myvar))/(max(myvar) - min(myvar))) + 1) 
   return(myvar)
 }
 ```
@@ -696,6 +696,999 @@ write.csv(mypower.lm, file = "000_Table_S5.csv")
 rm(mytemp, i, mypower.lm)
 ```
 <br/><br/>
+
+
+NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
+
+Additional characterization of error
+```{R}
+my <- myfa
+colnames(my)
+my1 <- my[my$rep == 1,] # r1
+my2 <- my[my$rep == 2,]; colnames(my2) <- paste0(colnames(my2), "_2") # r2
+my3 <- my[my$rep == 3,]; colnames(my3) <- paste0(colnames(my3), "_3") # r3
+my4 <- my[my$rep == 4,]; colnames(my4) <- paste0(colnames(my4), "_4") # r4
+# sum(my1$bc1 != my2$bc1_2)
+my <- cbind(my1, my2, my3, my4) # zip
+
+my$sedeltafit <- apply(cbind(my$deltafit, my$deltafit_2, my$deltafit_3, my$deltafit_4), 1, sjstats::se)
+
+my$medcount <- apply(cbind(my$bc1cts_i_0r1,my$bc1cts_i_0r2,my$bc1cts_i_0r3,my$bc1cts_i_0r4,
+                  my$bc1cts_f_0r1, my$bc1cts_f_0r2, my$bc1cts_f_0r3, my$bc1cts_f_0r4,
+                  my$bc1cts_i, my$bc1cts_i_2, my$bc1cts_i_3, my$bc1cts_i_4,
+                  my$bc1cts_f, my$bc1cts_f_2, my$bc1cts_f_3, my$bc1cts_f_4),
+                  1, median, na.rm = T)
+
+
+my$prop_i_0r1 <- my$bc1cts_i_0r1 / (my$bc1cts_i_0r1 + my$bc2cts_i_0r1)
+my$prop_i_0r2 <- my$bc1cts_i_0r2 / (my$bc1cts_i_0r2 + my$bc2cts_i_0r2)
+my$prop_i_0r3 <- my$bc1cts_i_0r3 / (my$bc1cts_i_0r3 + my$bc2cts_i_0r3)
+my$prop_i_0r4 <- my$bc1cts_i_0r4 / (my$bc1cts_i_0r4 + my$bc2cts_i_0r4)
+
+my$prop_f_0r1 <- my$bc1cts_f_0r1 / (my$bc1cts_f_0r1 + my$bc2cts_f_0r1)
+my$prop_f_0r2 <- my$bc1cts_f_0r2 / (my$bc1cts_f_0r2 + my$bc2cts_f_0r2)
+my$prop_f_0r3 <- my$bc1cts_f_0r3 / (my$bc1cts_f_0r3 + my$bc2cts_f_0r3)
+my$prop_f_0r4 <- my$bc1cts_f_0r4 / (my$bc1cts_f_0r4 + my$bc2cts_f_0r4)
+
+my$prop_i_250r1 <- my$bc1cts_i / (my$bc1cts_i + my$bc2cts_i)
+my$prop_i_250r2 <- my$bc1cts_i_2 / (my$bc1cts_i_2 + my$bc2cts_i_2)
+my$prop_i_250r3 <- my$bc1cts_i_3 / (my$bc1cts_i_3 + my$bc2cts_i_3)
+my$prop_i_250r4 <- my$bc1cts_i_4 / (my$bc1cts_i_4 + my$bc2cts_i_4)
+
+my$prop_f_250r1 <- my$bc1cts_f / (my$bc1cts_f + my$bc2cts_f)
+my$prop_f_250r2 <- my$bc1cts_f_2 / (my$bc1cts_f_2 + my$bc2cts_f_2)
+my$prop_f_250r3 <- my$bc1cts_f_3 / (my$bc1cts_f_3 + my$bc2cts_f_3)
+my$prop_f_250r4 <- my$bc1cts_f_4 / (my$bc1cts_f_4 + my$bc2cts_f_4)
+
+
+my$medprop <- apply(cbind(my$prop_i_0r1,my$prop_i_0r2,my$prop_i_0r3,my$prop_i_0r4,
+                  my$prop_f_0r1, my$prop_f_0r2, my$prop_f_0r3, my$prop_f_0r4,
+                  my$prop_i_250r1, my$prop_i_250r2, my$prop_i_250r3, my$prop_i_250r4,
+                  my$prop_f_250r1, my$prop_f_250r2, my$prop_f_250r3, my$prop_f_250r4),
+                  1, median, na.rm = T)
+
+
+my$mnfit250 <- apply(cbind(my$fit25, my$fit25_2, my$fit25_3, my$fit25_4),
+                       1, mean, na.rm = T)
+
+my$mnfit0 <- apply(cbind(my$fit0, my$fit0_r2, my$fit0_r3, my$fit0_r4),
+                   1, mean, na.rm = T)
+
+# my$mndeltafit <- apply(cbind(my$deltafit, my$deltafit_2, my$deltafit_3, my$deltafit_4),
+#                        1, mean, na.rm = T)
+my$mndeltafit <- NA
+for(i in 1:nrow(my)){
+  my$mndeltafit[i] <- weighted.mean(my[i,c("deltafit", "deltafit_2", "deltafit_3", "deltafit_4")],
+                                    my[i,c("rdeltafit", "rdeltafit_2", "rdeltafit_3", "rdeltafit_4")], na.rm = T)
+}
+
+
+
+# my$mnccdeltafit <- apply(cbind(my$ccdeltafit, my$ccdeltafit_2, my$ccdeltafit_3, my$ccdeltafit_4),
+#                        1, mean, na.rm = T) 
+my$mnccdeltafit <- NA
+for(i in 1:nrow(my)){
+  my$mnccdeltafit[i] <- weighted.mean(my[i,c("ccdeltafit", "ccdeltafit_2", "ccdeltafit_3", "ccdeltafit_4")],
+                                    my[i,c("rdeltafit", "rdeltafit_2", "rdeltafit_3", "rdeltafit_4")], na.rm = T)
+}
+
+
+my$mnrdeltafit <- apply(cbind(my$rdeltafit, my$rdeltafit_2, my$rdeltafit_3, my$rdeltafit_4),
+                       1, mean, na.rm = T) 
+
+```
+
+
+ERROR in DW: fitness change
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(abs(my$mndeltafit)))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "mean delta fitness Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mndeltafit)
+# my$plotbreak[my$mndeltafit <= x[2]] <- 1
+# my$plotbreak[my$mndeltafit > x[2] & my$mndeltafit <= x[3]] <- 2
+# my$plotbreak[my$mndeltafit > x[3] & my$mndeltafit <= x[5]] <- 3
+# my$plotbreak[my$mndeltafit > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+ERROR IN DW: ccdeltafit
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# instamyx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "mean ccdeltafit Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnccdeltafit)
+# my$plotbreak[my$mnccdeltafit <= x[2]] <- 1
+# my$plotbreak[my$mnccdeltafit > x[2] & my$mnccdeltafit <= x[3]] <- 2
+# my$plotbreak[my$mnccdeltafit > x[3] & my$mnccdeltafit <= x[5]] <- 3
+# my$plotbreak[my$mnccdeltafit > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+ERROR IN DW: rdeltafit
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnrdeltafit))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "mean rdeltafit Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnrdeltafit)
+# my$plotbreak[my$mnrdeltafit <= x[2]] <- 1
+# my$plotbreak[my$mnrdeltafit > x[2] & my$mnrdeltafit <= x[3]] <- 2
+# my$plotbreak[my$mnrdeltafit > x[3] & my$mnrdeltafit <= x[5]] <- 3
+# my$plotbreak[my$mnrdeltafit > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+ERROR IN DW: initial fit (fit0)
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnfit0))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <-  my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "mean initial fitness Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnfit0)
+# my$plotbreak[my$mnfit0 <= x[2]] <- 1
+# my$plotbreak[my$mnfit0 > x[2] & my$mnfit0 <= x[3]] <- 2
+# my$plotbreak[my$mnfit0 > x[3] & my$mnfit0 <= x[5]] <- 3
+# my$plotbreak[my$mnfit0 > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+ERROR IN DW: final fit (fit25)
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnfit250))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "mean final fitness Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnfit250)
+# my$plotbreak[my$mnfit250 <= x[2]] <- 1
+# my$plotbreak[my$mnfit250 > x[2] & my$mnfit250 <= x[3]] <- 2
+# my$plotbreak[my$mnfit250 > x[3] & my$mnfit250 <= x[5]] <- 3
+# my$plotbreak[my$mnfit250 > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+ERROR IN DW: environment (chemical)
+```{R}
+# my2 <- my[my$treatment %in% c("CMdiploid0.001", "CM+Saltdiploid0.001", "CM+Ethanoldiploid0.001"),]
+# mymod <- glm(I(scale(my2$sedeltafit)) ~ my2$treatment, weights = my2$mnrdeltafit)
+# summary(mymod)
+# 
+# mymod <- lm(I(scale(my2$sedeltafit)) ~ relevel(my2$treatment, ref = "CM+Saltdiploid0.001"), weights = my2$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my2$treatment
+# myy <- my2$sedeltafit
+# myc <- my2$treatment
+# myr <- my2$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "Treatment"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# p <- ggplot(my2, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+
+ERROR IN DW: environment (dilution)
+```{R}
+# my2 <- my[my$treatment %in% c("CMdiploid0.001","CMdiploid0.004", "CMdiploid0.00025"),]
+# mymod <- glm(I(scale(my2$sedeltafit)) ~ my2$treatment, weights = my2$mnrdeltafit)
+# summary(mymod)
+# 
+# mymod <- lm(I(scale(my2$sedeltafit)) ~ relevel(my2$treatment, ref = "CMdiploid0.004"), weights = my2$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my2$treatment
+# myy <- my2$sedeltafit
+# myc <- my2$treatment
+# myr <- my2$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "Treatment"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# p <- ggplot(my2, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+
+ERROR IN DW: environment (ploidy)
+```{R}
+# my2 <- my[my$treatment %in% c("CMdiploid0.001","CMhaploid0.001"),]
+# mymod <- lm(I(scale(my2$sedeltafit)) ~ my2$treatment, weights = my2$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my2$treatment
+# myy <- my2$sedeltafit
+# myc <- my2$treatment
+# myr <- my2$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "Treatment"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# p <- ggplot(my2, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+ERROR IN DW: med count
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$medcount))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "Median Count Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$medcount)
+# my$plotbreak[my$medcount <= x[2]] <- 1
+# my$plotbreak[my$medcount > x[2] & my$medcount <= x[3]] <- 2
+# my$plotbreak[my$medcount > x[3] & my$medcount <= x[5]] <- 3
+# my$plotbreak[my$medcount > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+ERROR IN DW: med freq
+```{R}
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "median frequency Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$medprop)
+# my$plotbreak[my$medprop <= x[2]] <- 1
+# my$plotbreak[my$medprop > x[2] & my$medprop <= x[3]] <- 2
+# my$plotbreak[my$medprop > x[3] & my$medprop <= x[5]] <- 3
+# my$plotbreak[my$medprop > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+
+
+
+DW: ccdeltafit
+```{R}
+# mymod <- lm(I(scale(abs(my$mndeltafit))) ~ I(scale(my$mnccdeltafit))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$mndeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "Mean Fitness Change"
+# myxlab <- "mean ccdeltafit Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnccdeltafit)
+# my$plotbreak[my$mnccdeltafit <= x[2]] <- 1
+# my$plotbreak[my$mnccdeltafit > x[2] & my$mnccdeltafit <= x[3]] <- 2
+# my$plotbreak[my$mnccdeltafit > x[3] & my$mnccdeltafit <= x[5]] <- 3
+# my$plotbreak[my$mnccdeltafit > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+DW: rdeltafit
+```{R}
+# mymod <- lm(I(scale(abs(my$mndeltafit))) ~ I(scale(my$mnrdeltafit))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$mndeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "Mean Fitness Change"
+# myxlab <- "mean ccdeltafit Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnrdeltafit)
+# my$plotbreak[my$mnrdeltafit <= x[2]] <- 1
+# my$plotbreak[my$mnrdeltafit > x[2] & my$mnrdeltafit <= x[3]] <- 2
+# my$plotbreak[my$mnrdeltafit > x[3] & my$mnrdeltafit <= x[5]] <- 3
+# my$plotbreak[my$mnrdeltafit > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+DW: fit0
+```{R}
+# mymod <- lm(I(scale(abs(my$mndeltafit))) ~ I(scale(my$mnfit0))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$mndeltafit
+# myc <- my$treatment
+# myr <- my$mnrdeltafit
+# 
+# mytitle <- NULL
+# myylab <- "Mean Fitness Change"
+# myxlab <- "mean ccdeltafit Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$mnfit0)
+# my$plotbreak[my$mnfit0 <= x[2]] <- 1
+# my$plotbreak[my$mnfit0 > x[2] & my$mnfit0 <= x[3]] <- 2
+# my$plotbreak[my$mnfit0 > x[3] & my$mnfit0 <= x[5]] <- 3
+# my$plotbreak[my$mnfit0 > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+DW: med count
+```{R}
+# mymod <- lm(I(scale(abs(my$mndeltafit))) ~ I(scale(my$medcount))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- 1
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "Median Count Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$medcount)
+# my$plotbreak[my$medcount <= x[2]] <- 1
+# my$plotbreak[my$medcount > x[2] & my$medcount <= x[3]] <- 2
+# my$plotbreak[my$medcount > x[3] & my$medcount <= x[5]] <- 3
+# my$plotbreak[my$medcount > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+DW: med freq
+```{R}
+# mymod <- lm(I(scale(abs(my$mndeltafit))) ~ I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod)
+# anova(mymod)
+# 
+# myx <- my$treatment
+# myy <- my$sedeltafit
+# myc <- my$treatment
+# myr <- 1
+# 
+# mytitle <- NULL
+# myylab <- "SE Fitness Change"
+# myxlab <- "median frequency Quartile"
+# 
+# myoutline <-  "grey20"
+# myfill <-  "grey90"
+# myfillapha <- 0.35
+# myptalpha <- 0.35
+# mylinealpha <- 0.35
+# 
+# mypalette <- setpalette
+# mytextsize <- 8
+# myheight <- 3.5
+# mywidth <- 7
+# myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+# 
+# my$plotbreak <- NA
+# x <- summary(my$medprop)
+# my$plotbreak[my$medprop <= x[2]] <- 1
+# my$plotbreak[my$medprop > x[2] & my$medprop <= x[3]] <- 2
+# my$plotbreak[my$medprop > x[3] & my$medprop <= x[5]] <- 3
+# my$plotbreak[my$medprop > x[5]] <- 4
+# myx <- factor(my$plotbreak, levels = c(1,2,3,4))
+# 
+# p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+#   geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+#   geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+#   geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+#   scale_color_manual(values =mypalette) + 
+#   geom_hline(yintercept = 0, lty = "dotted") + 
+#   coord_flip() +
+#   theme_classic()+
+#   theme(legend.position="none") +
+#   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+#   theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+#   theme(axis.text.y = element_text(size = 8, angle = 0))+
+#   theme(axis.text.x = element_text(size = 8, angle = 0))
+# p 
+```
+
+
+
+CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER 
+ERROR IN DW
+```{R}
+pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
+
+mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(abs(my$mndeltafit))) +I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+car::vif(mymod) # variance is inflated. lets remove mndeltafit as it captures similar info to mnfit0 plus mnfit250
+
+mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+car::vif(mymod) # variance is still inflated in some locations. Lets remove medcount as it captures similar information as mnrdeltafit
+
+mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+            +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+car::vif(mymod) # VIF looks good now (SAFE TO IGNORE FACTORS with > 3 levels -- will always look inflated)
+
+# now begin model reduction (remove least significant term first until only significant terms remain.)
+summary(mymod) # remove treatment first as it has the highest p-value (look at lowest p-value among levels)
+AIC(mymod)
+anova(mymod)
+
+mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+            +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop)), weights = my$mnrdeltafit)
+car::vif(mymod) # VIF looks good now 
+summary(mymod)
+AIC(mymod)
+
+# # now look to see if the treatments differ in these terms....
+# mymod <- lm(I(scale(my$mnccdeltafit)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod);anova(mymod) # yes there are differences by treatment. 
+# 
+# mymod <- lm(I(scale(my$mnrdeltafit)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod);anova(mymod) # yes there are differences by treatment. 
+# 
+# mymod <- lm(I(scale(my$mnfit0)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod);anova(mymod) # yes there are differences by treatment. 
+# 
+# mymod <- lm(I(scale(my$mnfit250)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod);anova(mymod) # yes there are differences by treatment.  <- dont worry about effect of treatment here -- this is basically our response variable. 
+# 
+# mymod <- lm(I(scale(my$medprop)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod);anova(mymod) # No difference by treatment. 
+```
+
+DW
+```{R}
+# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
+# 
+# mymod <- lm(I(scale(my$mndeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+#             +I(scale(my$mnfit0)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# car::vif(mymod) # variance is inflated. lets remove medcount as it captures similar info to mnrdeltafit
+# 
+# 
+# mymod <- lm(I(scale(my$mndeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+#             +I(scale(my$mnfit0))+I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# car::vif(mymod) # variance looks okay now
+# summary(mymod) # remove mnrdeltafit first
+# AIC(mymod)
+# 
+# mymod <- lm(I(scale(my$mndeltafit)) ~ I(scale(my$mnccdeltafit))
+#             +I(scale(my$mnfit0))+I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod) # remove medprop next
+# AIC(mymod)
+# 
+# mymod <- lm(I(scale(my$mndeltafit)) ~ I(scale(my$mnccdeltafit))
+#             +I(scale(my$mnfit0)) +my$treatment, weights = my$mnrdeltafit)
+# summary(mymod) # remove medprop next
+# AIC(mymod)
+# 
+# # --------- now look at effect of treatment on each of the significant terms. are there differences???
+# mymod <- lm(I(scale(my$mnccdeltafit)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod) # yes there are differences by treatment. 
+# 
+# mymod <- lm(I(scale(my$mnfit0)) ~ my$treatment, weights = my$mnrdeltafit)
+# summary(mymod) # yes there are differences by treatment. 
+# 
+# 
+# 
+# 
+# # but what if we run the full model instead with these means....
+my3 <- myfa[order(myfa$bctID),]
+
+my3$medcount <- apply(cbind(my3$bc1cts_i_0r1,my3$bc1cts_i_0r2,my3$bc1cts_i_0r3,my3$bc1cts_i_0r4,
+                  my3$bc1cts_f_0r1, my3$bc1cts_f_0r2, my3$bc1cts_f_0r3, my3$bc1cts_f_0r4,
+                  my3$bc1cts_i, my3$bc1cts_f),
+                  1, median, na.rm = T)
+
+
+my3$prop_i_0r1 <- my3$bc1cts_i_0r1 / (my3$bc1cts_i_0r1 + my3$bc2cts_i_0r1)
+my3$prop_i_0r2 <- my3$bc1cts_i_0r2 / (my3$bc1cts_i_0r2 + my3$bc2cts_i_0r2)
+my3$prop_i_0r3 <- my3$bc1cts_i_0r3 / (my3$bc1cts_i_0r3 + my3$bc2cts_i_0r3)
+my3$prop_i_0r4 <- my3$bc1cts_i_0r4 / (my3$bc1cts_i_0r4 + my3$bc2cts_i_0r4)
+
+my3$prop_f_0r1 <- my3$bc1cts_f_0r1 / (my3$bc1cts_f_0r1 + my3$bc2cts_f_0r1)
+my3$prop_f_0r2 <- my3$bc1cts_f_0r2 / (my3$bc1cts_f_0r2 + my3$bc2cts_f_0r2)
+my3$prop_f_0r3 <- my3$bc1cts_f_0r3 / (my3$bc1cts_f_0r3 + my3$bc2cts_f_0r3)
+my3$prop_f_0r4 <- my3$bc1cts_f_0r4 / (my3$bc1cts_f_0r4 + my3$bc2cts_f_0r4)
+
+my3$prop_i_250r1 <- my3$bc1cts_i / (my3$bc1cts_i + my3$bc2cts_i)
+my3$prop_f_250r1 <- my3$bc1cts_f / (my3$bc1cts_f + my3$bc2cts_f)
+
+
+my3$medprop <- apply(cbind(my3$prop_i_0r1,my3$prop_i_0r2,my3$prop_i_0r3,my3$prop_i_0r4,
+                  my3$prop_f_0r1, my3$prop_f_0r2, my3$prop_f_0r3, my3$prop_f_0r4,
+                  my3$prop_i_250r1, my3$prop_f_250r1),
+                  1, median, na.rm = T)
+
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+car::vif(mymod) # remove medcount as it captures basically the same thing as rdeltafit, but in a weaker way.
+
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+car::vif(mymod) # VIF looks good now, proceed to model reduction
+summary(mymod) # medprop is out first...
+
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+summary(mymod) # rdeltafit is out next...
+
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+summary(mymod) 
+
+# # --------- now look at effect of treatment on each of the significant terms. are there differences???
+# mymod <- lm(I(scale(my3$ccdeltafit)) ~ my3$treatment, weights = my3$rdeltafit)
+# summary(mymod) # yes there are differences by treatment. 
+# 
+# mymod <- lm(I(scale(my3$ccdeltafit)) ~ my3$treatment, weights = my3$rdeltafit)
+# summary(mymod) # yes there are differences by treatment. 
+```
+CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER CURRENT VER 
+
+NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
+
+
 
 
 
