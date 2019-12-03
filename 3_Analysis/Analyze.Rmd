@@ -785,15 +785,17 @@ ERROR IN DW
 ```{R}
 pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
 
+# term removal strat 1 -----------------------
 mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(abs(my$mndeltafit))) +I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+
 car::vif(mymod) # variance is inflated. lets remove mndeltafit as it captures similar info to mnfit0 plus mnfit250
 
-mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
 car::vif(mymod) # variance is still inflated in some locations. Lets remove medcount as it captures similar information as mnrdeltafit
 
-mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
 car::vif(mymod) # VIF looks good now (SAFE TO IGNORE FACTORS with > 3 levels -- will always look inflated)
 
@@ -801,9 +803,10 @@ car::vif(mymod) # VIF looks good now (SAFE TO IGNORE FACTORS with > 3 levels -- 
 summary(mymod) # remove treatment first as it has the highest p-value (look at lowest p-value among levels)
 AIC(mymod)
 
-mymod <- lm(I(scale(my$sedeltafit)) ~+I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
+mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale((my$mnrdeltafit)))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop)), weights = my$mnrdeltafit)
 summary(mymod)
+hist(expand_residuals(mymod, my$mnrdeltafit))
 AIC(mymod)
 ```
 
@@ -851,9 +854,11 @@ my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$pro
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
 car::vif(mymod) # VIF looks okay, proceed to model reduction
 summary(mymod) # rdeltafit is first term removed
+AIC(mymod)
 
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
 summary(mymod) # remove medprop next
+AIC(mymod)
 
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
 summary(mymod) # remove 
