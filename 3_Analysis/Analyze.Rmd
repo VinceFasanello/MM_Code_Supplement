@@ -86,6 +86,7 @@ require(sjPlot); # used to output tables
 require(weights); # used for weighted t.test
 require(plyr); # used for dataframe manipulation
 require(gridExtra) # used for multipanel plotting
+require(MuMIn) # model seleciton and multimodel inference
 
 options(scipen = 999) # turn off scientific notation
 ```
@@ -700,26 +701,27 @@ rm(mytemp, i, mypower.lm)
 
 NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
 
-Additional characterization of error
+Analysis: Characterization of error and contribution of covariates to SE deltafitness and deltafitness.
+1: Build the dataframe to test SE delatfitness
 ```{R}
-my <- myfa
-colnames(my)
+my <- myfa # get a copy of the main data to work on. 
+# split by replicate and bind to form a wide frame.
 my1 <- my[my$rep == 1,] # r1
 my2 <- my[my$rep == 2,]; colnames(my2) <- paste0(colnames(my2), "_2") # r2
 my3 <- my[my$rep == 3,]; colnames(my3) <- paste0(colnames(my3), "_3") # r3
 my4 <- my[my$rep == 4,]; colnames(my4) <- paste0(colnames(my4), "_4") # r4
-# sum(my1$bc1 != my2$bc1_2)
-my <- cbind(my1, my2, my3, my4) # zip
+# sum(my1$bc1 != my2$bc1_2) # sort order matches.
+my <- cbind(my1, my2, my3, my4) # bind
 
-my$sedeltafit <- apply(cbind(my$deltafit, my$deltafit_2, my$deltafit_3, my$deltafit_4), 1, sjstats::se)
+my$sedeltafit <- apply(cbind(my$deltafit, my$deltafit_2, my$deltafit_3, my$deltafit_4), 1, sjstats::se) # calculate SE deltafit among replicates
   
 my$medcount <- apply(cbind(my$bc1cts_i_0r1,my$bc1cts_i_0r2,my$bc1cts_i_0r3,my$bc1cts_i_0r4,
                   my$bc1cts_f_0r1, my$bc1cts_f_0r2, my$bc1cts_f_0r3, my$bc1cts_f_0r4,
                   my$bc1cts_i, my$bc1cts_i_2, my$bc1cts_i_3, my$bc1cts_i_4,
                   my$bc1cts_f, my$bc1cts_f_2, my$bc1cts_f_3, my$bc1cts_f_4),
-                  1, median, na.rm = T)
+                  1, median, na.rm = T) # calculate median counts for each SE deltafit entry.
 
-
+# Calculate BC proportions for next step @ all timepoints for all replicates.
 my$prop_i_0r1 <- my$bc1cts_i_0r1 / (my$bc1cts_i_0r1 + my$bc2cts_i_0r1)
 my$prop_i_0r2 <- my$bc1cts_i_0r2 / (my$bc1cts_i_0r2 + my$bc2cts_i_0r2)
 my$prop_i_0r3 <- my$bc1cts_i_0r3 / (my$bc1cts_i_0r3 + my$bc2cts_i_0r3)
@@ -745,72 +747,86 @@ my$medprop <- apply(cbind(my$prop_i_0r1,my$prop_i_0r2,my$prop_i_0r3,my$prop_i_0r
                   my$prop_f_0r1, my$prop_f_0r2, my$prop_f_0r3, my$prop_f_0r4,
                   my$prop_i_250r1, my$prop_i_250r2, my$prop_i_250r3, my$prop_i_250r4,
                   my$prop_f_250r1, my$prop_f_250r2, my$prop_f_250r3, my$prop_f_250r4),
-                  1, median, na.rm = T)
+                  1, median, na.rm = T) # calculate median proportion for each SE deltafit entry
 
-
-
-my$mnfit0 <- NA
+my$mnfit0 <- NA # Calculate the weighted mean generation 0 fitness for each SE deltafitness entry 
 for(i in 1:nrow(my)){
   my$mnfit0[i] <- weighted.mean(my[i,c("fit0r1", "fit0r2", "fit0r3", "fit0r4")],
                                     my[i,c("rfit0r1", "rfit0r2", "rfit0r3", "rfit0r4")], na.rm = T)
 }
 
-my$mnfit250 <- NA
+my$mnfit250 <- NA # Calculate the weighted mean generation 250 fitness for each SE deltafitness entry 
 for(i in 1:nrow(my)){
   my$mnfit250[i] <- weighted.mean(my[i,c("fit25", "fit25_2", "fit25_3", "fit25_4")],
                                     my[i,c("rfit25", "rfit25_2", "rfit25_3", "rfit25_4")], na.rm = T)
 }
 
 
+# NOT USED -- captures same data as fit0 + fit250
+# my$mndeltafit <- NA
+# for(i in 1:nrow(my)){
+#   my$mndeltafit[i] <- weighted.mean(my[i,c("deltafit", "deltafit_2", "deltafit_3", "deltafit_4")],
+#                                     my[i,c("rdeltafit", "rdeltafit_2", "rdeltafit_3", "rdeltafit_4")], na.rm = T)
+# }
 
-my$mndeltafit <- NA
-for(i in 1:nrow(my)){
-  my$mndeltafit[i] <- weighted.mean(my[i,c("deltafit", "deltafit_2", "deltafit_3", "deltafit_4")],
-                                    my[i,c("rdeltafit", "rdeltafit_2", "rdeltafit_3", "rdeltafit_4")], na.rm = T)
-}
-
-my$mnccdeltafit <- NA
+my$mnccdeltafit <- NA # Calculate the weighted mean cross contamination rate for each SE deltafitness entry 
 for(i in 1:nrow(my)){
   my$mnccdeltafit[i] <- weighted.mean(my[i,c("ccdeltafit", "ccdeltafit_2", "ccdeltafit_3", "ccdeltafit_4")],
                                     my[i,c("rdeltafit", "rdeltafit_2", "rdeltafit_3", "rdeltafit_4")], na.rm = T)
 }
 
-
 my$mnrdeltafit <- apply(cbind(my$rdeltafit, my$rdeltafit_2, my$rdeltafit_3, my$rdeltafit_4),
-                       1, mean, na.rm = T) 
+                       1, mean, na.rm = T) # calculate an updated "sampling effort" value for each SE deltafitness entry 
 
 ```
 
-ERROR IN DW
+
+2: Assess variables that affect SE deltafitness: using sequential term removal via p-value
 ```{R}
-pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
+# pairs(my[,c("mndeltafit", "mnfit0", "mnfit250", "medcount", "medprop")]) # look at a pairs plot of the variables
 
-# term removal strat 1 -----------------------
-mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(abs(my$mndeltafit))) +I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+# begin model inference with a fully paramaterized model
+mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop)) + my$treatment, weights = my$mnrdeltafit)
+car::vif(mymod) # VIF looks okay.
+summary(mymod) # remove medcount (largest p-value)
 
-car::vif(mymod) # variance is inflated. lets remove mndeltafit as it captures similar info to mnfit0 plus mnfit250
+mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
+summary(mymod) # remove treatment next (largest p-value)
 
-mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
-car::vif(mymod) # variance is still inflated in some locations. Lets remove medcount as it captures similar information as mnrdeltafit
+mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop)), weights = my$mnrdeltafit)
+summary(mymod) # remove medprop next (largest p-value)
 
-mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale(my$mnrdeltafit))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
-car::vif(mymod) # VIF looks good now (SAFE TO IGNORE FACTORS with > 3 levels -- will always look inflated)
-
-# now begin model reduction (remove least significant term first until only significant terms remain.)
-summary(mymod) # remove treatment first as it has the highest p-value (look at lowest p-value among levels)
-AIC(mymod)
-
-mymod <- lm(I(scale(my$sedeltafit)) ~I(scale(my$mnccdeltafit)) +I(scale((my$mnrdeltafit)))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250))+I(scale(my$medprop)), weights = my$mnrdeltafit)
+# final model:
+mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)), weights = my$mnrdeltafit)
 summary(mymod)
-hist(expand_residuals(mymod, my$mnrdeltafit))
 AIC(mymod)
 ```
 
-DW
+
+3: Assess variables that affect SE deltafitness: using model selection and multimodel inference
+```{R}
+# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
+# term removal strat 1 -----------------------
+mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit))
+            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit, na.action = "na.fail")
+summary(mymod)
+
+mymod1 <- dredge(mymod, beta = "sd")
+
+# model averaging using delata AIC <= 4
+avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
+summary(avgmod.delta4)
+importance(avgmod.delta4)
+confint(avgmod.delta4)
+
+# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
+avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
+summary(avgmod.95p)
+importance(avgmod.95p)
+confint(avgmod.95p)
+```
+
+4: Build the dataframe to test delatfitness
 ```{R}
 my3 <- myfa[order(myfa$bctID),]
 
@@ -849,21 +865,42 @@ for(i in 1:nrow(my3)){
 }
 my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$prop_f_250r1),
                   1, median, na.rm = T)
+```
 
-
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(rdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-car::vif(mymod) # VIF looks okay, proceed to model reduction
-summary(mymod) # rdeltafit is first term removed
-AIC(mymod)
-
+5: Assess variables that affect deltafitness: using sequential term removal via p-value
+```{R}
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) # remove medprop next
+car::vif(mymod) # VIF looks okay, proceed to model reduction
+summary(mymod) # medprop is out first.
 AIC(mymod)
 
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) # remove 
+summary(mymod) # final model
 AIC(mymod)
 ```
+
+6: Assess variables that affect deltafitness: using model selection and multimodel inference
+```{R}
+# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
+# term removal strat 1 -----------------------
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)), na.action = "na.fail")
+summary(mymod)
+
+mymod1 <- dredge(mymod, beta = "sd")
+
+# model averaging using delata AIC <= 4
+avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
+summary(avgmod.delta4)
+importance(avgmod.delta4)
+confint(avgmod.delta4)
+
+# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
+avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
+summary(avgmod.95p)
+importance(avgmod.95p)
+confint(avgmod.95p)
+```
+
 NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
 
 
