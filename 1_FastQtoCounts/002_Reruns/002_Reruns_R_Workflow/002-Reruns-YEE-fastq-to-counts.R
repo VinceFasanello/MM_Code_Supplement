@@ -279,6 +279,7 @@ rm(fastq, fastq.seq, i) # remove unnecessary variables
 
 # generate an empty counts matrix using the "GenerateEmptyCountsTable" function
 counts <- GenerateEmptyCountsTable(layout = layout, mobyBCs = mobyBCs)
+colnames(counts) <- layout$experiment.id
 
 fastq.filenames <- fastq.filenames[1:12]	# truncate the fastq.filenames object to omit the nomatch file
 fastq.a.primers <- fastq.a.primers[1:12]	# (Forward primers) truncate the fastq.a.primers object to omit the "none" entry

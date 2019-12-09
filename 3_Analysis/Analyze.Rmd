@@ -562,6 +562,11 @@ myres$bcid <-  gsub("^.*?D","",rownames(myres)) # fix barcode id names
 myres$m_deltafit <- ddply(my, ~bctID, function(my) weighted.mean(my$deltafit, my$rdeltafit))[,2]
 myres$m_rdeltafit <- ddply(my, ~bctID, function(my) mean(my$rdeltafit))[,2]
 myres$mcm_deltafit <- myres$m_deltafit - weighted.mean(myres$m_deltafit, myres$m_rdeltafit)
+
+# NEW NEW NEW
+myres$se_deltafit <- ddply(my, ~bctID, function(my) sjstats::se(my$deltafit))[,2]
+# NEW NEW NEW
+ 
 myres$color <- "fdr > 0.01"; myres$color[myres$p1s_h.adj <= 0.01] <- "fdr <= 0.01"
 myres$color <- as.factor(myres$color); myres$color <- relevel(myres$color, "fdr > 0.01")
 myres$treatment <- gsub('0025d', '0025', gsub('001d', '001', gsub('.{4}$', '', myres$bcid))) # strip bc id from treatment label, store in myres
@@ -615,9 +620,10 @@ paste0("proportion of barcodes in treatment that increased in fitness = ", nrow(
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
-myx <- myres$m_deltafit
-myr <- myres$m_rdeltafit
-myc <- myres$color
+# Plot ONLY data with se_deltafit < 0.029 for clarity -- This removes high SE points that have a large mean fitness increase, but have SE such that this fit increase is non-significant.
+myx <- myres[myres$se_deltafit < 0.029,]$m_deltafit
+myr <- myres[myres$se_deltafit < 0.029,]$m_rdeltafit
+myc <- myres[myres$se_deltafit < 0.029,]$color
 mybinwidth <- 0.01
 
 mytitle <- NULL
@@ -637,7 +643,8 @@ myheight <- 3.3
 mywidth <- 3.3
 
 
-p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
+# p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
+p <- ggplot(myres[myres$se_deltafit < 0.029,], aes(x=myx, color = myc, fill = myc)) + 
   geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
   geom_vline(xintercept = weighted.mean(myx, myr), linetype = "dashed", color = myhighlight) +
   geom_vline(xintercept = weighted.mean(myx[myc == "fdr > 0.01"], myr[myc == "fdr > 0.01"]), linetype = "dashed", color = myhighlight2) +
@@ -656,9 +663,9 @@ p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) +
   theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
   theme(legend.title = element_text(size = mytextsize, face = "bold"))+
   theme(legend.text = element_text(size = mytextsize))+
-  scale_x_continuous(breaks = seq(-0.1,0.5,by=0.05),
-                     labels = c("-0.1", "", "0", "", "0.1", "", "0.2", "", "0.3", "", "0.4", "", "0.5"),
-                     limits = c(-0.05, 0.45))+
+  scale_x_continuous(breaks = seq(-0.1,0.25,by=0.05),
+                     labels = c("-0.1", "-0.05", "0", "0.05", "0.1", "0.15", "0.2", "0.25"),
+                     limits = c(-0.05, 0.25))+
   scale_y_continuous(breaks = seq(0,25,by=5),
                      limits = c(0,25))
 p
@@ -1142,6 +1149,72 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme(axis.text.y = element_text(size = 8, angle = 0))+
   theme(axis.text.x = element_text(size = 8, angle = 0))+
   annotate("text", x=c(2,3,5,6), y=c(.14,.55,.15,.46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
+  
+p 
+# -----------------------------------------------------------------------------
+
+# figure output ---------------------------------------------------------------
+pdf(file = "000_Figure_4.pdf", width = mywidth, height = myheight); p; dev.off()
+# -----------------------------------------------------------------------------
+rm(my, mymod, weights)
+```
+<br/><br/>
+
+
+Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
+```{r}
+my <- myfa_w[order(myfa_w$bctID),] # placeholder dataframe
+my <- my[my$sedeltafit < 0.029,]
+min(my$mndeltafit)
+max(my$mndeltafit)
+
+myx <- my$treatment
+myy <- my$mndeltafit
+myr <- my$mnrdeltafit
+myc <- my$treatment
+
+mytitle <- NULL
+myylab <- "Fitness change"
+myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myfillapha <- 0.35
+myptalpha <- 0.35
+mylinealpha <- 0.35
+
+mypalette <- setpalette
+mytextsize <- 8
+myheight <- 3.5
+mywidth <- 7
+myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
+
+
+p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
+  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
+  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
+  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
+  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
+  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
+  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
+  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
+  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
+  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
+  scale_color_manual(values =mypalette) + 
+  geom_hline(yintercept = 0, lty = "dotted") + 
+  coord_flip() +
+  theme_classic()+
+  theme(legend.position="none") +
+  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
+  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  scale_y_continuous(breaks = seq(-.05,.25,by=.05),
+                     labels = c("-0.05", "0", "0.05", "0.1", "0.15", "0.2", "0.25"),
+                     limits = c(-.05, .25))+
+  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
+  theme(axis.text.y = element_text(size = 8, angle = 0))+
+  theme(axis.text.x = element_text(size = 8, angle = 0))+
+  annotate("text", x=c(2,3,5,6), y=c(.06,.25,.0925,.11), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
   
 p 
 # -----------------------------------------------------------------------------
