@@ -78,14 +78,14 @@ Prepare the workspace: clean, set options, load packages, load and final formatt
 rm(list = ls()) # clear workspace
 knitr::opts_chunk$set(tidy = TRUE, collapse = TRUE) # set global knitr options.
 # load required packages
-require(ggplot2); # used for plotting
+require(ggplot2); # used for plotting #check#
 require(pwr); # used for power analysis
-require(lme4); # used for mixed effects models
-require(lmerTest); # used to interpret mixed effects models
-require(sjPlot); # used to output tables
-require(weights); # used for weighted t.test
-require(plyr); # used for dataframe manipulation
-require(gridExtra) # used for multipanel plotting
+require(lme4); # used for mixed effects models #check#
+require(lmerTest); # used to interpret mixed effects models #check#
+require(sjPlot); # used to output tables #check#
+require(weights); # used for weighted t.test #check#
+require(plyr); # used for dataframe manipulation #check#
+require(gridExtra) # used for multipanel plotting #check#
 require(MuMIn) # model seleciton and multimodel inference
 
 options(scipen = 999) # turn off scientific notation
@@ -928,6 +928,7 @@ myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a 
 # power to detect treatment effects ------------------------------
 myv <- (22*2) -1 - 1
 mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = myeffectsize, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
+# mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = 0.5, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
 
 # prepare plot data ----------------------------------------
 mypower <- matrix(nrow=100, ncol = 5); colnames(mypower) <- c("u", "v", "power", "f2", "sig.level")
@@ -967,8 +968,10 @@ p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
   theme_classic()+
   ggtitle("power to detect fitness differences between two treatments \n with n total barcodes")+
   labs(color = "n (total barcodes)")+
-  scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1), 
-                     labels = c("0.0%", "0.1%", "0.2%", "0.3%", "0.4%", "0.5%", "0.6%", "0.7%", "0.8%", "0.9%", "1.0%", "1.1%"))
+  scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
+                                                                                myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
+                                                                                myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
+                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))
 p
 pdf(file = paste("000_m_FitChangeTreatDif_PowerByRMSE_effectsizexpower.pdf"), width = mywidth, height = myheight); p; dev.off()
 
@@ -983,7 +986,7 @@ p<-ggplot(mypower, aes(x=n, y=power, group=f2)) +
   theme_classic()+
   scale_x_continuous(name = "n (total barcodes)", breaks = c(4, 10, 15, 21, 27, 33, 38, 44), labels = c(4, 10, 15, 21, 27, 33, 38, 44))+
   ggtitle("power to detect fitness differences between two treatments \n with n total barcodes")+
-  scale_color_discrete(name = "Fitness Difference \n between Treatments", labels = rev(c("0.03%", "0.06%", "0.14%", "0.28%", "0.43%", "0.57%", "0.71%", "0.85%", "1.00%", "1.14%")))
+  scale_color_discrete(name = "Fitness Difference \n between Treatments", labels = rev(c("0.05%","0.1%", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%")))
 p
 pdf(file = paste("000_m_FitChangeTreatDif_PowerByRMSE_nxpower.pdf"), width = mywidth, height = myheight); p; dev.off()
 
@@ -1206,7 +1209,7 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme_classic()+
   theme(legend.position="none") +
   ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
-  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
+  scale_x_discrete(labels = c("CM \n Diploid \n 1:1000", "CM+EtOH \n Diploid \n 1:1000", "CM+NaCl \n Diploid \n 1:1000", "CM \n Diploid \n 1:4000", "CM \n Diploid \n 1:250", "CM \n Haploid \n 1:1000")) +
   scale_y_continuous(breaks = seq(-.05,.25,by=.05),
                      labels = c("-0.05", "0", "0.05", "0.1", "0.15", "0.2", "0.25"),
                      limits = c(-.05, .25))+
@@ -1214,7 +1217,7 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.text.y = element_text(size = 8, angle = 0))+
   theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,5,6), y=c(.06,.25,.0925,.11), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
+  annotate("text", x=c(2,3,4,5.25,6), y=c(.065,.25,.045,.09,.115), label = c("***", "***", "*", ".", "***"), size = 8, fontface = "bold")
   
 p 
 # -----------------------------------------------------------------------------
