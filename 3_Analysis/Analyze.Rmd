@@ -873,7 +873,7 @@ my3$mnprop0f <- NA
 for(i in 1:nrow(my3)){
   my3$mnprop0i[i] <- weighted.mean(my3[i,c("prop_i_0r1", "prop_i_0r2", "prop_i_0r3", "prop_i_0r4")],
                                     my3[i,c("r0ir1", "r0ir2", "r0ir3", "r0ir4")], na.rm = T)
-  my3$mnprop0f[i] <- weighted.mean(my3[i,c("prop_f_0r1", "prop_f_0r2", "prop_f_0r3", "prop_f_250r1")],
+  my3$mnprop0f[i] <- weighted.mean(my3[i,c("prop_f_0r1", "prop_f_0r2", "prop_f_0r3", "prop_f_0r4")],
                                     my3[i,c("r0fr1", "r0fr2", "r0fr3", "r0fr4")], na.rm = T)
 }
 my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$prop_f_250r1),
