@@ -824,7 +824,7 @@ mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit))
             +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit, na.action = "na.fail")
 summary(mymod)
 
-mymod1 <- dredge(mymod, beta = "sd")
+mymod1 <- dredge(mymod)
 
 # model averaging using delata AIC <= 4
 avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
@@ -899,7 +899,7 @@ AIC(mymod)
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)), na.action = "na.fail")
 summary(mymod)
 
-mymod1 <- dredge(mymod, beta = "sd")
+mymod1 <- dredge(mymod)
 
 # model averaging using delata AIC <= 4
 avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
