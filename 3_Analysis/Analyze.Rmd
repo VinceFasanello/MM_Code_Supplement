@@ -914,6 +914,152 @@ importance(avgmod.95p)
 confint(avgmod.95p)
 ```
 
+
+Analysis: Power Quick Look (NEW NEW NEW)
+```{r}
+# POC FIT ASSAY -- FITNESS EQUIVALENCE -----------------------------------------
+my <- poc92[order(poc92$bcid),]
+my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
+mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
+myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+
+# 250 GEN EXP -- FITNESS EQUIVALENCE -------------------------------------------
+colnames(myfa)
+myfa_0 <- myfa
+my1 <- myfa_0[, c("rep","bc1", "bctID", "fit0r1", "rfit0r1"),]; my1 <- my1[my1$rep == 1,]
+my2 <- myfa_0[, c("rep","bc1", "bctID", "fit0r2", "rfit0r2"),]; my2 <- my2[my2$rep == 2,]
+my3 <- myfa_0[, c("rep","bc1", "bctID", "fit0r3", "rfit0r3"),]; my3 <- my3[my3$rep == 3,]
+my4 <- myfa_0[, c("rep","bc1", "bctID", "fit0r4", "rfit0r4"),]; my4 <- my4[my4$rep == 4,]
+colnames(my1) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
+colnames(my2) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
+colnames(my3) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
+colnames(my4) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
+myfa_0 <- rbind(my1, my2, my3, my4)
+my <- myfa_0
+my$bc1 <- as.factor(my$bc1); my$bctID <- as.factor(my$bctID)
+
+# Same as poc version --------------------------------------
+my$fit0_c <- my$fit0 - weighted.mean(my$fit0, my$rfit0)
+mymod <- lm(my$fit0_c~ my$bc1 + 0, weights = my$rfit0); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~3.22 fitness dif 
+myeffectsize <- 1/myrmse # effect size of 1 is a 3.22 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treat effects
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
+pow$power # 95.1% power to detect treatment fitness differences of 1.00%
+
+# split by bctID, rather than just BC to get 4 per. --------
+my$fit0_c <- my$fit0 - weighted.mean(my$fit0, my$rfit0)
+mymod <- lm(my$fit0_c~ my$bctID + 0, weights = my$rfit0); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~2.92 fitness dif 
+myeffectsize <- 1/myrmse # effect size of 1 is a 2.92 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treat effects
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
+pow$power # 96.6% power to detect treatment fitness differences of 1.00%
+
+
+
+
+# 250 GEN EXP -- USING DELTA FIT -----------------------------------------------
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$deltafit ~ my$bctID, weights = my$rdeltafit); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treat effects
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
+pow$power # 87.7% power to detect treatment fitness differences of 1.00%
+
+# 250 GEN EXP -- USING FIT 250 -------------------------------------------------
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$fit25 ~ my$bctID, weights = my$rfit25); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.34 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.34 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treat effects
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
+pow$power # 87.5% power to detect treatment fitness differences of 1.00%
+
+
+
+
+# now some power calculations for fitness difference detection by barcode  --------------------------------------------------
+# 1. Power to detect fitness divergence (from self or from reference, same math -- so works for fitness divergence from ancestor (init fit) and fitness change)
+#   a. POC data -- These are t-tests, so the pwr calc needs psd, not rmse (discuss with JF)
+#   b. 250 gen exp -- These are t-tests, so the pwr calc needs psd, not rmse (discuss with JF)
+
+# 1. a
+my <- poc92
+my1 <- my[my$exp == 1,]; colnames(my1) <- paste0(colnames(my1), "_R1")
+my2 <- my[my$exp == 2,]; colnames(my2) <- paste0(colnames(my2), "_R2")
+my3 <- my[my$exp == 3,]; colnames(my3) <- paste0(colnames(my3), "_R3")
+my4 <- my[my$exp == 4,]; colnames(my4) <- paste0(colnames(my4), "_R4")
+my5 <- my[my$exp == 5,]; colnames(my5) <- paste0(colnames(my5), "_R5")
+my6 <- my[my$exp == 6,]; colnames(my6) <- paste0(colnames(my6), "_R6")
+my7 <- my[my$exp == 7,]; colnames(my7) <- paste0(colnames(my7), "_R7")
+my8 <- my[my$exp == 8,]; colnames(my8) <- paste0(colnames(my8), "_R8")
+my9 <- my[my$exp == 9,]; colnames(my9) <- paste0(colnames(my9), "_R9")
+my10 <- my[my$exp == 10,]; colnames(my10) <- paste0(colnames(my10), "_R10")
+poc92_w <- cbind(my1, my2, my3, my4, my5, my6, my7, my8, my9, my10)
+
+for(i in 1:nrow(poc92_w)){
+  poc92_w$mnrw[i] <- weighted.mean(poc92_w[i,c("rw_R1", "rw_R2", "rw_R3", "rw_R4", "rw_R5", "rw_R6", "rw_R7", "rw_R8", "rw_R9", "rw_R10")],
+                                    poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+  poc92_w$mnr[i] <- rowMeans(poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+}
+
+my <- poc92_w
+my$psd_r1 <- ((my$rw_R1-my$mnrw)^2)/10
+my$psd_r2 <- ((my$rw_R2-my$mnrw)^2)/10
+my$psd_r3 <- ((my$rw_R3-my$mnrw)^2)/10
+my$psd_r4 <- ((my$rw_R4-my$mnrw)^2)/10
+my$psd_r5 <- ((my$rw_R5-my$mnrw)^2)/10
+my$psd_r6 <- ((my$rw_R6-my$mnrw)^2)/10
+my$psd_r7 <- ((my$rw_R7-my$mnrw)^2)/10
+my$psd_r8 <- ((my$rw_R8-my$mnrw)^2)/10
+my$psd_r9 <- ((my$rw_R9-my$mnrw)^2)/10
+my$psd_r10 <- ((my$rw_R10-my$mnrw)^2)/10
+my$psd_m <- rowMeans(cbind(my$psd_r1, my$psd_r2, my$psd_r3, my$psd_r4, my$psd_r5, my$psd_r6, my$psd_r7, my$psd_r8, my$psd_r9, my$psd_r10), na.rm = T)
+my$psd <- sqrt(my$psd_m)
+psd <- weighted.mean(my$psd, my$mnr, na.rm = T)
+
+pow <- pwr.t.test(d= 0.01 / psd, n=4, sig.level = 0.05)
+pow$power # 67% power to detect 1% fit change. 
+
+pow <- pwr.t.test(power = 0.8, n=4, sig.level = 0.05)
+pow$d*psd # 80% power to detect ~1.2% fitness difference
+
+
+# 1. b
+# power to detect fitness increase / decrease (t-tests) --------------------------------------------
+# d = m1 - m2 / q; m1 is mean group 1, m2 is mean group 2, q is common standard deviation in the two groups
+# here m1 is change in fitness and m2 is 0. mean q is used and is the weighted mean of all
+# population standard deviation of the four replicate sets in each row of the dataset.
+
+# get data and ccalculate d -----------
+my <- myfa_w
+my$psd_r1 <- ((my$deltafit-my$mndeltafit)^2)/4
+my$psd_r2 <- ((my$deltafit_2-my$mndeltafit)^2)/4
+my$psd_r3 <- ((my$deltafit_3-my$mndeltafit)^2)/4
+my$psd_r4 <- ((my$deltafit_4-my$mndeltafit)^2)/4
+my$psd_m <- rowMeans(cbind(my$psd_r1, my$psd_r2, my$psd_r3, my$psd_r4), na.rm = T)
+my$psd <- sqrt(my$psd_m)
+psd <- weighted.mean(my$psd, my$mnrdeltafit, na.rm = T)
+
+pow <- pwr.t.test(d= 0.01 / psd, n=4, sig.level = 0.05)
+pow # 16% power to detect 1% fit change. 
+
+pow <- pwr.t.test(power = 0.8, n=4, sig.level = 0.05)
+pow$d*psd # 80% power to detect ~3% fitness change
+
+```
+
+
+
+
 Analysis: Assess power to detect fitness change in this experimental evolution system, given replicate variance in the POC fitness assay dataset. 
 ```{r}
 # run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
