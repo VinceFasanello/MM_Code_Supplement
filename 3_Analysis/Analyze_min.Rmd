@@ -183,7 +183,8 @@ paste0("RsMSE = ",
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Table_S4.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Table_S4.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Additional_File_4.html")
 # -----------------------------------------------------------------------------
 
 # create temporary plotting dataframe -----------------------------------------
@@ -214,8 +215,8 @@ mylinealpha <- 0.35
 mypalette <- setpalette
 
 mytextsize <- 8
-myheight <- 3.3 
-mywidth <- 3.3
+myheight <- 3.345 
+mywidth <- 3.345
 
 p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
   geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
@@ -375,7 +376,9 @@ p_b
 
 # figure output ---------------------------------------------------------------
 grid.arrange(p_a, p_b, nrow = 2)
-pdf(file = "000_Figure_S1.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+# pdf(file = "000_Figure_S1.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+pdf(file = "000_Additional_File_7.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+
 # -----------------------------------------------------------------------------
 rm(cc, myt, p_a, p_b, cc001, cc002, r001, r002, myx2) # remove the temporary variable
 ```
@@ -459,86 +462,14 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S2.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
+# pdf(file = "000_Figure_S2.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
+pdf(file = "000_Additional_File_8.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
 
 # -----------------------------------------------------------------------------
 rm(faevo.1.ce, faevo.1.cc, faevo.2.ce, faevo.2.cc, myt1, myt1r, myt2, myt2r, myt, mytr, p) # clean up this section. 
 rm(faevo.cc, faevo.ce, poc.cc, poc.ce) # clean up for next major set of analyses (remove the counts datasets to keep our global environment clean)
 ```
 <br/><br/>
-
-
-
-Analysis: Assess whether detected fitness change for barcodes in the 250-generation experiment is affected by barcode-cross contamination rate
-```{r}
-my <- myfa[order(myfa$bctID),]
-# model & diagnostic plots ----------------------------------------------------
-mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
-# mymod <-  lm(deltafit ~ ccdeltafit, weights = rdeltafit, data = my);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
-hist(residuals(mymod), breaks = 100) # residuals have outlying points -- but biew the weighted version of the residual histogram as well....
-hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output.
-# -----------------------------------------------------------------------------
-
-# model output -----------------------------------------------------------------
-# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S6.html") # DO NOT USE THIS
-# -----------------------------------------------------------------------------
-
-# Visualize -------------------------------------------------------------------
-mymod <- lmer(deltafit ~ ccdeltafit + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # unmanipulated data for plotting
-myx <- my$ccdeltafit
-myy <- my$deltafit
-myr <- my$rdeltafit
-myc <- as.character(my$treatment)
-myc[myc=="CM+Ethanoldiploid0.001"] <- "CM+EtOH \n Diploid \n 0.001 \n"
-myc[myc=="CM+Saltdiploid0.001"] <- "CM+NaCl \n Diploid \n 0.001 \n"
-myc[myc=="CMdiploid0.001"] <- "CM \n Diploid \n 0.001 \n"
-myc[myc=="CMdiploid0.004"] <- "CM \n Diploid \n 0.004 \n"
-myc[myc=="CMdiploid0.00025"] <- "CM \n Diploid \n 0.00025 \n"
-myc[myc=="CMhaploid0.001"] <- "CM \n Haploid \n 0.001 \n"
-myc <- factor(myc, levels = c("CM \n Diploid \n 0.001 \n", "CM+EtOH \n Diploid \n 0.001 \n", "CM+NaCl \n Diploid \n 0.001 \n", "CM \n Diploid \n 0.00025 \n", "CM \n Diploid \n 0.004 \n", "CM \n Haploid \n 0.001 \n"))
-
-myg <- paste0(my$treatment,my$bctID)
-
-mytitle <- NULL
-myylab <- "Change in Fitness"
-myxlab <- "Mean Barcode Contamination Rate (% Total Counts)"
-
-myhighlight <- "black"
-myfillapha <- 0.35
-myptalpha <- 0.35
-mylinealpha <- 0.35
-mypalette <- setpalette
-
-mytextsize <- 8
-myheight <- 7
-mywidth <- 7
-myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
-
-
-p <- ggplot(my, aes(x=myx, y=myy, color = myc))+
-  geom_line(aes(y=predict(mymod), group = myg, color = myc), size = 1, alpha = myptalpha)+
-  geom_point(aes(color=myc), alpha = myptalpha, size = myptsize)+
-  geom_rug(alpha = myptalpha)+
-  scale_color_manual(values = setpalette)+
-  theme_classic() +
-  labs(color = "Treatment") +
-  ggtitle(mytitle) + ylab(myylab)+ xlab(myxlab) +
-  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
-  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
-  theme(legend.title = element_text(size = mytextsize, face = "bold"))+
-  theme(legend.text = element_text(size = mytextsize))
-p
-# -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
-# pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off() # 7by7 # THIS FIGURE IS NO LONGER USED
-# -----------------------------------------------------------------------------
-rm(my, mymod, p, weights)
-```
-<br/><br/>
-
 
 
 Analysis: Assess fitness change in 250-generations of experimental evolution for barcodes in the 250-generation experiment. 
@@ -552,7 +483,8 @@ plot(mymod) # model fit (multi) -- looks pretty good.
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S7.html") # table does not have corrected p-values. 
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S10.html") # table does not have corrected p-values. 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_12.html") # table does not have corrected p-values. 
 # -----------------------------------------------------------------------------
 
 # create results dataframe ----------------------------------------------------
@@ -642,8 +574,8 @@ mylinealpha <- 0.35
 mypalette <- setpalette
 
 mytextsize <- 8
-myheight <- 3.3
-mywidth <- 3.3
+myheight <- 3.345
+mywidth <- 3.345
 
 
 # p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
@@ -681,40 +613,6 @@ rm(my, mymod, myres, myrest, p)
 ```
 <br/><br/>
 
-
-
-OUTDATED BLOCK -- REMOVE -- Analysis: Assess power to detect fitness change in this experimental evolution system, given replicate variance in the POC fitness assay dataset. 
-```{r}
-# # run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
-# my <- poc92[order(poc92$bcid),]
-# my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
-# mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
-# 
-# # create a power table for lms -------------------------------------------------
-# myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
-# myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-# mypower.lm <- as.data.frame(cbind(rep(NA, times = 12), NA, NA, NA, NA)) # create dataframe
-# colnames(mypower.lm) <- c("u", "v", "f2", "sig.level", "power") # fix column names
-# mypower.lm$u <- 1 # assign u
-# mypower.lm$v <- 6 # assign v
-# mypower.lm$sig.level <- c(0.05, 0.05, 0.05, 0.05, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.005) # assign significance
-# mypower.lm$f2 <- c(myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5) # Assign effect size
-# for (i in 1:nrow(mypower.lm)) { # populate power column
-#   mytemp <- pwr.f2.test(u=mypower.lm$u[i], v=mypower.lm$v[i], sig.level=mypower.lm$sig.level[i], f2=mypower.lm$f2[i])
-#   mypower.lm$power[i] <- mytemp$power
-# }
-# # ------------------------------------------------------------------------------
-# 
-# # view and save ----------------------------------------------------------------
-# write.csv(mypower.lm, file = "000_Table_S5.csv") # do not use this table
-# # ------------------------------------------------------------------------------
-# 
-# rm(mytemp, i, mypower.lm)
-```
-<br/><br/>
-
-
-NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
 
 Analysis: Characterization of error and contribution of covariates to SE deltafitness and deltafitness.
 1: Build the dataframe to test SE delatfitness
@@ -799,50 +697,36 @@ myfa_w <- my
 
 2: Assess variables that affect SE deltafitness: using sequential term removal via p-value
 ```{R}
-# pairs(my[,c("mndeltafit", "mnfit0", "mnfit250", "medcount", "medprop")]) # look at a pairs plot of the variables
-
-# begin model inference with a fully paramaterized model
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop)) + my$treatment, weights = my$mnrdeltafit)
-
-# use this model -----------------------
 mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mndeltafit)) +I(scale(my$medcount)) +I(scale(my$medprop)) + my$treatment, weights = my$mnrdeltafit)
 car::vif(mymod) # VIF looks okay.
-summary(mymod) # remove medcount (largest p-value)
-
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
-summary(mymod) # remove treatment next (largest p-value)
-
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop)), weights = my$mnrdeltafit)
-summary(mymod) # remove medprop next (largest p-value)
-
-# final model:
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)), weights = my$mnrdeltafit)
 summary(mymod)
-AIC(mymod)
+
+# model output -----------------------------------------------------------------=
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S9.html") # r2 on the lm version of htis model is 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_11.html") # r2 on the lm version of htis model is 
+# -----------------------------------------------------------------------------
+
 ```
 
 
 3: Assess variables that affect SE deltafitness: using model selection and multimodel inference
 ```{R}
-# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
-# term removal strat 1 -----------------------
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit, na.action = "na.fail")
-summary(mymod)
-
-mymod1 <- dredge(mymod)
-
-# model averaging using delata AIC <= 4
-avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
-summary(avgmod.delta4)
-importance(avgmod.delta4)
-confint(avgmod.delta4)
-
-# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
-avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
-summary(avgmod.95p)
-importance(avgmod.95p)
-confint(avgmod.95p)
+# mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mndeltafit)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit, na.action = "na.fail")
+# summary(mymod)
+# 
+# mymod1 <- dredge(mymod)
+# 
+# # model averaging using delata AIC <= 4
+# avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
+# summary(avgmod.delta4)
+# importance(avgmod.delta4)
+# confint(avgmod.delta4)
+# 
+# # model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
+# avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
+# summary(avgmod.95p)
+# importance(avgmod.95p)
+# confint(avgmod.95p)
 ```
 
 4: Build the dataframe to test delatfitness
@@ -886,18 +770,8 @@ my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$pro
                   1, median, na.rm = T)
 ```
 
-5: Assess variables that affect deltafitness: using sequential term removal via p-value
+5: Assess variables that affect deltafitness
 ```{R}
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-car::vif(mymod) # VIF looks okay, proceed to model reduction
-summary(mymod) # medprop is out first.
-AIC(mymod)
-
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) # final model
-AIC(mymod)
-
-# use this model ------------------------
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
 anova(mymod)
 summary(mymod) # final model
@@ -906,28 +780,26 @@ AIC(mymod)
 
 6: Assess variables that affect deltafitness: using model selection and multimodel inference
 ```{R}
-# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
-# term removal strat 1 -----------------------
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)), na.action = "na.fail")
-summary(mymod)
-
-mymod1 <- dredge(mymod)
-
-# model averaging using delata AIC <= 4
-avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
-summary(avgmod.delta4)
-importance(avgmod.delta4)
-confint(avgmod.delta4)
-
-# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
-avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
-summary(avgmod.95p)
-importance(avgmod.95p)
-confint(avgmod.95p)
+# mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)), na.action = "na.fail")
+# summary(mymod)
+# 
+# mymod1 <- dredge(mymod)
+# 
+# # model averaging using delata AIC <= 4
+# avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
+# summary(avgmod.delta4)
+# importance(avgmod.delta4)
+# confint(avgmod.delta4)
+# 
+# # model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
+# avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
+# summary(avgmod.95p)
+# importance(avgmod.95p)
+# confint(avgmod.95p)
 ```
 
 
-Analysis: Power Quick Look (NEW NEW NEW)
+Analysis: Power ( quick look at #'s)
 ```{r}
 # POC FIT ASSAY -- FITNESS EQUIVALENCE -----------------------------------------
 my <- poc92[order(poc92$bcid),]
@@ -1239,9 +1111,6 @@ p<-ggplot(mypower, aes(x=n, y=power, group=fitchange)) +
 p
 pdf(file = paste("000_m_FitChangeIncDec_PowerByRMSE_nxpower.pdf"), width = mywidth, height = myheight); p; dev.off()
 ```
-NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
-
-
 
 
 
@@ -1252,78 +1121,12 @@ my <- myfa[order(myfa$bctID),] # placeholder dataframe
 mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
 # mymod <- lm(my$deltafit ~ my$ccdeltafit + my$treatment, weights = my$rdeltafit);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
 
-hist(residuals(mymod), breaks = 100)
-hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
-anova(mymod) # test term significance
-# -----------------------------------------------------------------------------
-
 # model output -----------------------------------------------------------------=
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S8.html") # r2 on the lm version of htis model is 0.3059, adjusted = 0.299
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S11.html") # r2 on the lm version of htis model is 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_13.html") # r2 on the lm version of htis model is 
 # -----------------------------------------------------------------------------
 
-# Visualize -------------------------------------------------------------------
-mymod <- lmer((deltafit) ~ (ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # problems with convergence here...solved with an optimizer and some extra iterations.
-myx <- my$treatment
-myy <- my$deltafit
-myr <- my$rdeltafit
-myc <- my$treatment
 
-mytitle <- NULL
-myylab <- "Fitness change"
-myxlab <- "Treatment"
-
-myoutline <-  "grey20"
-myfill <-  "grey90"
-myfillapha <- 0.35
-myptalpha <- 0.35
-mylinealpha <- 0.35
-
-mypalette <- setpalette
-mytextsize <- 8
-myheight <- 3.5
-mywidth <- 7
-myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
-
-
-p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
-  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
-  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
-  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
-  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
-  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
-  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
-  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
-  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
-  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
-  scale_color_manual(values =mypalette) + 
-  geom_hline(yintercept = 0, lty = "dotted") + 
-  coord_flip() +
-  theme_classic()+
-  theme(legend.position="none") +
-  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
-  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
-  scale_y_continuous(breaks = seq(-.25,.55,by=.05),
-                     labels = c("", "-0.2", "", "-0.1", "", "0", "", "0.1", "", "0.2", "", "0.3", "", "0.4", "", "0.5", ""),
-                     limits = c(-.25, .55))+
-  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.text.y = element_text(size = 8, angle = 0))+
-  theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,5,6), y=c(.14,.55,.15,.46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
-  
-p 
-# -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_5.pdf", width = mywidth, height = myheight); p; dev.off()
-# -----------------------------------------------------------------------------
-rm(my, mymod, weights)
-```
-<br/><br/>
-
-
-Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
-```{r}
 my <- myfa_w[order(myfa_w$bctID),] # placeholder dataframe
 my <- my[my$sedeltafit < 0.029,]
 min(my$mndeltafit)
@@ -1346,8 +1149,8 @@ mylinealpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
-myheight <- 3.5
-mywidth <- 7
+myheight <- 3.345
+mywidth <- 6.69
 myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
 
 
@@ -1375,13 +1178,13 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.text.y = element_text(size = 8, angle = 0))+
   theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,4,5.25,6), y=c(.065,.25,.045,.09,.115), label = c("***", "***", "*", ".", "***"), size = 8, fontface = "bold")
+  annotate("text", x=c(2,3,4,5,6), y=c(.065,.25,.045,.095,.115), label = c("**", "***", "", "***", "*"), size = 8, fontface = "bold")
   
 p 
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_4.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Figure_5.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, weights)
 ```
@@ -1454,7 +1257,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S11.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S12.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_14.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1500,7 +1304,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_15.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1528,7 +1334,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S12.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S13.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_16.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1580,7 +1387,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S4.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S4.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_17.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1608,7 +1417,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S13.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S14.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_18.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1654,7 +1464,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S5.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S5.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_19.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1682,7 +1494,9 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S14.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S15.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_20.html")
+
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1729,7 +1543,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S6.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S6.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_21.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1754,7 +1570,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S15.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S16.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_22.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1799,7 +1616,8 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S7.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S7.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_23.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1823,7 +1641,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S16.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S17.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_24.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1869,7 +1688,8 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S8.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S8.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_25.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
@@ -1897,7 +1717,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S17.html")
+# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S18.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_26.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1943,7 +1764,8 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S9.pdf", width = mywidth, height = myheight); p; dev.off()
+# pdf(file = "000_Figure_S9.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_27.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p)
 ```
