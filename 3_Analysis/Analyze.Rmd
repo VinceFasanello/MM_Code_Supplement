@@ -36,41 +36,47 @@ output:
 
 
 ***
-#### Outputs:   
-1.  000_Figure_2.pdf -- Manuscript Figure 2 output as .pdf file.  
-2.  000_Figure_3.pdf -- Manuscript Figure 3 output as .pdf file. 
-3.  000_Figure_4.pdf -- Manuscript Figure 4 output as .pdf file. 
+#### Outputs:  
+Main Figures:
+1.  000_Figure_2.pdf 
+2.  000_Figure_3.pdf
+3.  000_Figure_4.pdf 
+4.  000_Figure_5.pdf
 
-4.  000_Figure_S1.pdf -- Manuscript Figure S1 panel a&b. output as .pdf file. 
-5.  000_Figure_S2.pdf -- Manuscript Figure S2 output as .pdf file. 
-6.  000_Figure_S3.pdf -- Manuscript Figure S3 output as .pdf file. 
-7.  000_Figure_S4.pdf -- Manuscript Figure S4 output as .pdf file. 
-8.  000_Figure_S5.pdf -- Manuscript Figure S5 output as .pdf file. 
-9. 000_Figure_S6.pdf -- Manuscript Figure S6 output as .pdf file. 
-10. 000_Figure_S7.pdf -- Manuscript Figure S7 output as .pdf file. 
-11. 000_Figure_S8.pdf -- Manuscript Figure S8 output as .pdf file. 
-12. 000_Figure_S9.pdf -- Manuscript Figure S9 output as .pdf file.
+Additional Files:
+1.  000_Additional_File_4.html
+2.  000_Additional_File_5.html
+3.  000_Additional_File_6.html
+4.  000_Additional_File_7.pdf
+5.  000_Additional_File_8.pdf
+6.  000_Additional_File_9.html
+7.  000_Additional_File_10.html
+8.  000_Additional_File_11.html
+9.  000_Additional_File_12.html
+10.  000_Additional_File_13.html
+11.  000_Additional_File_14.html
+12.  000_Additional_File_15.pdf
+13.  000_Additional_File_16.html
+14.  000_Additional_File_17.pdf
+15.  000_Additional_File_18.html
+16.  000_Additional_File_19.pdf
+17.  000_Additional_File_20.html
+18.  000_Additional_File_21.pdf
+19.  000_Additional_File_22.html
+20.  000_Additional_File_23.pdf
+21.  000_Additional_File_24.html
+22.  000_Additional_File_25.pdf
+23.  000_Additional_File_26.html
+24.  000_Additional_File_27.pdf
 
-15. 000_Table_S4.html -- Raw Manuscript Figure S4 output as .html file. File later stylized in excel and P-values converted to fdr for publication.
-16. 000_Table_S5.html
-17. 000_Table_S6.html
-18. 000_Table_S7.html
-19. 000_Table_S8.html
 
-10. 000_Table_S9.html -- Raw Manuscript Figure S7 output as .html file. File later stylized in excel.
-21. 000_Table_S10.html -- Raw Manuscript Figure S8 output as .html file. File later stylized in excel and P-values converted to 1-sided (higher) and fdr for publication.
-22. 000_Table_S11.html -- Raw Manuscript Figure S9 output as .html file. File later stylized in excel.
-23. 000_Table_S12.html -- Raw Manuscript Figure S10 output as .html file. File later stylized in excel.
-24. 000_Table_S13.html -- Raw Manuscript Figure S11 output as .html file. File later stylized in excel.
-25. 000_Table_S14.html -- Raw Manuscript Figure S12 output as .html file. File later stylized in excel.
-26. 000_Table_S15.html -- Raw Manuscript Figure S13 output as .html file. File later stylized in excel.
-27. 000_Table_S16.html -- Raw Manuscript Figure S14 output as .html file. File later stylized in excel.
-28. 000_Table_S17.html -- Raw Manuscript Figure S15 output as .html file. File later stylized in excel.
+* Figure_1, is not output by this script; it is manually created in excel 
 
-* Table_S4 through Table_S16 are all stylized and formatted in Excel and converted to .xlsx files from .html (if originally .html formatted) for publication.
-** Table_S4 is output with raw p-values, but values are converted to fdr for publication. Table_S8 is output with raw 2-sided test p-values, but values are converted to 1-sided (higher) and fdr for publication. 
-*** Figure_1, Figure_5 are not output by this script. They are manually created in Keynote and Excel, respectively. 
-**** Table_S1, Table_S2, and Table_S3 are not output by this script. They are manually created in Excel.
+* Table_1 is not created directly from this script, but is built from outputs associated with Additional Files 14:27.
+
+* Additional Files 1, 2, and 3 are created by hand in excel and are not created by this script
+
+* Additional_File_4 is output with raw p-values, but values are converted to fdr for publication and presented in an xlsx format document. Additional_File_12 is output with raw 2-sided test p-values, but values are converted to 1-sided (higher) and fdr for publication and presented in an xlsx format document. 
 
 
 ***
@@ -96,10 +102,8 @@ options(scipen = 999) # turn off scientific notation
 <br/><br/>
 
 
-
+Load the required datasets and Conduct any last minute calculations
 ```{r, warning = FALSE, message=FALSE}
-getwd()
-
 dir_in_pocpro <- "2_CountstoAnalysis/001_Prepare_Datasets" # input directory for Proof of concept processed dataframes
 setwd("..")
 setwd(dir_in_pocpro) # set to above directory path
@@ -151,6 +155,16 @@ log_transform <- function(myvar){
   myvar <- log(((myvar - min(myvar))/(max(myvar) - min(myvar))) + 1) 
   return(myvar)
 }
+
+# get legend function found on stack exchange ----------------------------------
+#  Source: https://stackoverflow.com/questions/12041042/how-to-plot-just-the-legends-in-ggplot2
+#  scrapes figure legend for later plotting in multipannel plot
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
 ```
 <br/><br/>
 
@@ -183,17 +197,17 @@ paste0("RsMSE = ",
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Table_S4.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Additional_File_4.html")
 # -----------------------------------------------------------------------------
 
 # create temporary plotting dataframe -----------------------------------------
 myres <- as.data.frame(coef(summary(mymod)), stringsAsFactors = F) # create a myres dataframe to aid in plotting. 
-myres$p.adjust <- p.adjust(myres$`Pr(>|t|)`, method = "fdr")
+myres$p.adjust <- p.adjust(myres$`Pr(>|t|)`, method = "fdr") # adjusted p-values
 myres$bcid <-  gsub("^.*?d","",rownames(myres)) # fix barcode id names
-myres$mrw <- ddply(my, ~bcid, function(my) weighted.mean(my$rw, my$r))[,2]
-myres$rmrw <- ddply(my, ~bcid, function(my) mean(my$r))[,2]
-myres$mcmrw <- myres$mrw - weighted.mean(myres$mrw, myres$rmrw)
-myres$color <- "fdr > 0.05"; myres$color[myres$p.adjust <= 0.05] <- "fdr <= 0.05"
+myres$mrw <- ddply(my, ~bcid, function(my) weighted.mean(my$rw, my$r))[,2] # weighted mean for fitness
+myres$rmrw <- ddply(my, ~bcid, function(my) mean(my$r))[,2] # mean for weights
+myres$mcmrw <- myres$mrw - weighted.mean(myres$mrw, myres$rmrw) # mean corrected fitness
+myres$color <- "fdr > 0.05"; myres$color[myres$p.adjust <= 0.05] <- "fdr <= 0.05" # set plotting colors
 myres$color <- as.factor(myres$color); myres$color <- relevel(myres$color, "fdr > 0.05")
 # -----------------------------------------------------------------------------
 
@@ -214,8 +228,8 @@ mylinealpha <- 0.35
 mypalette <- setpalette
 
 mytextsize <- 8
-myheight <- 3.3 
-mywidth <- 3.3
+myheight <- 3.345 
+mywidth <- 3.345
 
 p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
   geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
@@ -246,7 +260,7 @@ p
 pdf(file = "000_Figure_2.pdf", width = mywidth, height = myheight); p; dev.off() # one column wide, equal height
 
 # -----------------------------------------------------------------------------
-rm(p, myres, mymod, my)
+rm(p, myres, mymod, my, mybinwidth, myc, myfillapha, myheight, myhighlight, mylinealpha, myptalpha, myr, mytextsize, mytitle, mywidth, myx, myxlab, myylab, mypalette)
 ```
 <br/><br/>
 
@@ -309,10 +323,6 @@ p_a <- ggplot(myt, aes(x=myx)) +
   annotate("text", x = 1, y = 47, label = "A", size = 10)
 p_a
 # -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
-#pdf(file = "000_Figure_S1_A.pdf", width = mywidth, height = myheight); p; dev.off()  # 2columns wide, half as tall
-# -----------------------------------------------------------------------------
 rm(cc, myt) # remove the temporary variable
 ```
 <br/><br/>
@@ -370,14 +380,11 @@ p_b
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-#pdf(file = "000_Figure_S1_b.pdf", width = mywidth, height = myheight); p; dev.off()  # 2columns wide, half as tall
-# -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
 grid.arrange(p_a, p_b, nrow = 2)
-pdf(file = "000_Figure_S1.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+pdf(file = "000_Additional_File_7.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+
 # -----------------------------------------------------------------------------
-rm(cc, myt, p_a, p_b, cc001, cc002, r001, r002, myx2) # remove the temporary variable
+rm(cc, myt, p_a, p_b, cc001, cc002, r001, r002, myx2, mybinwidth, myc, myfillapha, myheight, myhighlight, mylinealpha, myptalpha, myr, mytextsize, mytitle, mywidth, myx, myxlab, myylab) # remove the temporary variable
 ```
 <br/><br/>
 
@@ -394,10 +401,6 @@ myt1 <- ((colSums(faevo.1.cc, na.rm = T)) / (colSums(faevo.1.ce, na.rm = T) + co
 myt2 <- ((colSums(faevo.2.cc, na.rm = T)) / (colSums(faevo.2.ce, na.rm = T) + colSums(faevo.2.cc, na.rm = T))) / colSums(!is.na(faevo.2.cc)) # cross contam run 2
 myt1r <- (colSums(faevo.1.ce, na.rm = T) +  colSums(faevo.1.cc, na.rm = T)) # reads run 1
 myt2r  <- (colSums(faevo.2.ce, na.rm = T) +  colSums(faevo.2.cc, na.rm = T)) # reads run 2
-
-# unweighted t-test results match weighted t-test qualitatively. see weighted t.test imemediately below.
-# var.test(myt1, myt2) # variance is not equal
-# mymod <- t.test(myt1, myt2, alternative = "greater", paired = TRUE, var.equal = FALSE); mymod # t.test, paired, 1 sided (greater), unequal variance 
 
 myt <- myt1 - myt2 # calculatation for weighted t.test below (contam run 1 - contam run 2)
 mytr <- 2/ ((1/myt1r) + (1/myt2r)) # reads for calculation below (harmonic mean of reads for run 1 and run 2)
@@ -459,86 +462,14 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S2.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
+pdf(file = "000_Additional_File_8.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
 
 # -----------------------------------------------------------------------------
 rm(faevo.1.ce, faevo.1.cc, faevo.2.ce, faevo.2.cc, myt1, myt1r, myt2, myt2r, myt, mytr, p) # clean up this section. 
 rm(faevo.cc, faevo.ce, poc.cc, poc.ce) # clean up for next major set of analyses (remove the counts datasets to keep our global environment clean)
+rm(myfill, myfillapha, myheight, myhighlight, mylinealpha, myoutline, mypalette, myptalpha, myptsize, myr, myr1, myr2, mytextsize, mytitle, mywidth, myx, myx1, myx2, myxlab, myy, myylab) # remove plotting params
 ```
 <br/><br/>
-
-
-
-Analysis: Assess whether detected fitness change for barcodes in the 250-generation experiment is affected by barcode-cross contamination rate
-```{r}
-my <- myfa[order(myfa$bctID),]
-# model & diagnostic plots ----------------------------------------------------
-mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
-# mymod <-  lm(deltafit ~ ccdeltafit, weights = rdeltafit, data = my);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
-hist(residuals(mymod), breaks = 100) # residuals have outlying points -- but biew the weighted version of the residual histogram as well....
-hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output.
-# -----------------------------------------------------------------------------
-
-# model output -----------------------------------------------------------------
-# tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S6.html") # DO NOT USE THIS
-# -----------------------------------------------------------------------------
-
-# Visualize -------------------------------------------------------------------
-mymod <- lmer(deltafit ~ ccdeltafit + (1|treatment/bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # unmanipulated data for plotting
-myx <- my$ccdeltafit
-myy <- my$deltafit
-myr <- my$rdeltafit
-myc <- as.character(my$treatment)
-myc[myc=="CM+Ethanoldiploid0.001"] <- "CM+EtOH \n Diploid \n 0.001 \n"
-myc[myc=="CM+Saltdiploid0.001"] <- "CM+NaCl \n Diploid \n 0.001 \n"
-myc[myc=="CMdiploid0.001"] <- "CM \n Diploid \n 0.001 \n"
-myc[myc=="CMdiploid0.004"] <- "CM \n Diploid \n 0.004 \n"
-myc[myc=="CMdiploid0.00025"] <- "CM \n Diploid \n 0.00025 \n"
-myc[myc=="CMhaploid0.001"] <- "CM \n Haploid \n 0.001 \n"
-myc <- factor(myc, levels = c("CM \n Diploid \n 0.001 \n", "CM+EtOH \n Diploid \n 0.001 \n", "CM+NaCl \n Diploid \n 0.001 \n", "CM \n Diploid \n 0.00025 \n", "CM \n Diploid \n 0.004 \n", "CM \n Haploid \n 0.001 \n"))
-
-myg <- paste0(my$treatment,my$bctID)
-
-mytitle <- NULL
-myylab <- "Change in Fitness"
-myxlab <- "Mean Barcode Contamination Rate (% Total Counts)"
-
-myhighlight <- "black"
-myfillapha <- 0.35
-myptalpha <- 0.35
-mylinealpha <- 0.35
-mypalette <- setpalette
-
-mytextsize <- 8
-myheight <- 7
-mywidth <- 7
-myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
-
-
-p <- ggplot(my, aes(x=myx, y=myy, color = myc))+
-  geom_line(aes(y=predict(mymod), group = myg, color = myc), size = 1, alpha = myptalpha)+
-  geom_point(aes(color=myc), alpha = myptalpha, size = myptsize)+
-  geom_rug(alpha = myptalpha)+
-  scale_color_manual(values = setpalette)+
-  theme_classic() +
-  labs(color = "Treatment") +
-  ggtitle(mytitle) + ylab(myylab)+ xlab(myxlab) +
-  theme(axis.title.y = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.title.x = element_text(size = mytextsize, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.text.y = element_text(size = mytextsize, angle = 0))+
-  theme(axis.text.x = element_text(size = mytextsize, angle = 0))+
-  theme(legend.title = element_text(size = mytextsize, face = "bold"))+
-  theme(legend.text = element_text(size = mytextsize))
-p
-# -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
-# pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off() # 7by7 # THIS FIGURE IS NO LONGER USED
-# -----------------------------------------------------------------------------
-rm(my, mymod, p, weights)
-```
-<br/><br/>
-
 
 
 Analysis: Assess fitness change in 250-generations of experimental evolution for barcodes in the 250-generation experiment. 
@@ -552,7 +483,7 @@ plot(mymod) # model fit (multi) -- looks pretty good.
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S7.html") # table does not have corrected p-values. 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_12.html") # table does not have corrected p-values. 
 # -----------------------------------------------------------------------------
 
 # create results dataframe ----------------------------------------------------
@@ -565,11 +496,7 @@ myres$bcid <-  gsub("^.*?D","",rownames(myres)) # fix barcode id names
 myres$m_deltafit <- ddply(my, ~bctID, function(my) weighted.mean(my$deltafit, my$rdeltafit))[,2]
 myres$m_rdeltafit <- ddply(my, ~bctID, function(my) mean(my$rdeltafit))[,2]
 myres$mcm_deltafit <- myres$m_deltafit - weighted.mean(myres$m_deltafit, myres$m_rdeltafit)
-
-# NEW NEW NEW
 myres$se_deltafit <- ddply(my, ~bctID, function(my) sjstats::se(my$deltafit))[,2]
-# NEW NEW NEW
- 
 myres$color <- "fdr > 0.01"; myres$color[myres$p1s_h.adj <= 0.01] <- "fdr <= 0.01"
 myres$color <- as.factor(myres$color); myres$color <- relevel(myres$color, "fdr > 0.01")
 myres$treatment <- gsub('0025d', '0025', gsub('001d', '001', gsub('.{4}$', '', myres$bcid))) # strip bc id from treatment label, store in myres
@@ -633,6 +560,7 @@ mytitle <- NULL
 myylab <- "Count"
 myxlab <- "Fitness change"
 
+myhighlight <- "grey50"
 myhighlight1 <- "black"
 myhighlight2 <- setpalette[1]
 myhighlight3 <- setpalette[2]
@@ -642,8 +570,8 @@ mylinealpha <- 0.35
 mypalette <- setpalette
 
 mytextsize <- 8
-myheight <- 3.3
-mywidth <- 3.3
+myheight <- 3.345
+mywidth <- 3.345
 
 
 # p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
@@ -677,46 +605,13 @@ p
 # figure output ---------------------------------------------------------------
 pdf(file = "000_Figure_4.pdf", width = mywidth, height = myheight); p; dev.off() # 7by7
 # -----------------------------------------------------------------------------
-rm(my, mymod, myres, myrest, p)
+rm(my, mymod, mymod2, myres, myrest, p)
+rm(mybinwidth, myc, myfillapha, myheight, myhighlight, myhighlight1, myhighlight2, myhighlight3, mylinealpha, mypalette, myptalpha, myr, mytextsize, mytitle, mywidth, myx, myxlab, myylab)
 ```
 <br/><br/>
 
 
-
-OUTDATED BLOCK -- REMOVE -- Analysis: Assess power to detect fitness change in this experimental evolution system, given replicate variance in the POC fitness assay dataset. 
-```{r}
-# # run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
-# my <- poc92[order(poc92$bcid),]
-# my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
-# mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
-# 
-# # create a power table for lms -------------------------------------------------
-# myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
-# myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-# mypower.lm <- as.data.frame(cbind(rep(NA, times = 12), NA, NA, NA, NA)) # create dataframe
-# colnames(mypower.lm) <- c("u", "v", "f2", "sig.level", "power") # fix column names
-# mypower.lm$u <- 1 # assign u
-# mypower.lm$v <- 6 # assign v
-# mypower.lm$sig.level <- c(0.05, 0.05, 0.05, 0.05, 0.01, 0.01, 0.01, 0.01, 0.005, 0.005, 0.005, 0.005) # assign significance
-# mypower.lm$f2 <- c(myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5, myeffectsize*0.1, myeffectsize, myeffectsize*2, myeffectsize*5) # Assign effect size
-# for (i in 1:nrow(mypower.lm)) { # populate power column
-#   mytemp <- pwr.f2.test(u=mypower.lm$u[i], v=mypower.lm$v[i], sig.level=mypower.lm$sig.level[i], f2=mypower.lm$f2[i])
-#   mypower.lm$power[i] <- mytemp$power
-# }
-# # ------------------------------------------------------------------------------
-# 
-# # view and save ----------------------------------------------------------------
-# write.csv(mypower.lm, file = "000_Table_S5.csv") # do not use this table
-# # ------------------------------------------------------------------------------
-# 
-# rm(mytemp, i, mypower.lm)
-```
-<br/><br/>
-
-
-NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
-
-Analysis: Characterization of error and contribution of covariates to SE deltafitness and deltafitness.
+Analysis: Characterization of error and contribution of covariates to SE deltafitness.
 1: Build the dataframe to test SE delatfitness
 ```{R}
 my <- myfa # get a copy of the main data to work on. 
@@ -794,216 +689,46 @@ my$mnrdeltafit <- apply(cbind(my$rdeltafit, my$rdeltafit_2, my$rdeltafit_3, my$r
                        1, mean, na.rm = T) # calculate an updated "sampling effort" value for each SE deltafitness entry 
 
 myfa_w <- my
+rm(my, my1, my2, my3, my4, i)
 ```
+<br/><br/>
 
 
 2: Assess variables that affect SE deltafitness: using sequential term removal via p-value
 ```{R}
-# pairs(my[,c("mndeltafit", "mnfit0", "mnfit250", "medcount", "medprop")]) # look at a pairs plot of the variables
-
-# begin model inference with a fully paramaterized model
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop)) + my$treatment, weights = my$mnrdeltafit)
-
-# use this model -----------------------
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mndeltafit)) +I(scale(my$medcount)) +I(scale(my$medprop)) + my$treatment, weights = my$mnrdeltafit)
+mymod <- lm(I(scale(myfa_w$sedeltafit)) ~ I(scale(myfa_w$mnccdeltafit)) +I(scale(myfa_w$mndeltafit)) +I(scale(myfa_w$medcount)) +I(scale(myfa_w$medprop)) + myfa_w$treatment, weights = myfa_w$mnrdeltafit)
 car::vif(mymod) # VIF looks okay.
-summary(mymod) # remove medcount (largest p-value)
-
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit)
-summary(mymod) # remove treatment next (largest p-value)
-
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medprop)), weights = my$mnrdeltafit)
-summary(mymod) # remove medprop next (largest p-value)
-
-# final model:
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit)) +I(scale(my$mnfit0)) +I(scale(my$mnfit250)), weights = my$mnrdeltafit)
-summary(mymod)
-AIC(mymod)
-```
-
-
-3: Assess variables that affect SE deltafitness: using model selection and multimodel inference
-```{R}
-# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
-# term removal strat 1 -----------------------
-mymod <- lm(I(scale(my$sedeltafit)) ~ I(scale(my$mnccdeltafit))
-            +I(scale(my$mnfit0)) +I(scale(my$mnfit250)) +I(scale(my$medcount)) +I(scale(my$medprop))+ my$treatment, weights = my$mnrdeltafit, na.action = "na.fail")
 summary(mymod)
 
-mymod1 <- dredge(mymod)
-
-# model averaging using delata AIC <= 4
-avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
-summary(avgmod.delta4)
-importance(avgmod.delta4)
-confint(avgmod.delta4)
-
-# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
-avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
-summary(avgmod.95p)
-importance(avgmod.95p)
-confint(avgmod.95p)
+# model output -----------------------------------------------------------------=
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_11.html") # r2 on the lm version of htis model is 
+# -----------------------------------------------------------------------------
+rm(mymod)
 ```
-
-4: Build the dataframe to test delatfitness
-```{R}
-my3 <- myfa[order(myfa$bctID),]
-
-my3$mncount0i <- NA
-my3$mncount0f <- NA
-for(i in 1:nrow(my3)){
-  my3$mncount0i[i] <- weighted.mean(my3[i,c("bc1cts_i_0r1", "bc1cts_i_0r2", "bc1cts_i_0r3", "bc1cts_i_0r4")],
-                                    my3[i,c("r0ir1", "r0ir2", "r0ir3", "r0ir4")], na.rm = T)
-  my3$mncount0f[i] <- weighted.mean(my3[i,c("bc1cts_f_0r1", "bc1cts_f_0r2", "bc1cts_f_0r3", "bc1cts_f_0r4")],
-                                    my3[i,c("r0fr1", "r0fr2", "r0fr3", "r0fr4")], na.rm = T)
-}
-my3$medcount <- apply(cbind(my3$mncount0i, my3$mncount0f, my3$bc1cts_i, my3$bc1cts_f),
-                  1, median, na.rm = T)
+<br/><br/>
 
 
-my3$prop_i_0r1 <- my3$bc1cts_i_0r1 / (my3$bc1cts_i_0r1 + my3$bc2cts_i_0r1)
-my3$prop_i_0r2 <- my3$bc1cts_i_0r2 / (my3$bc1cts_i_0r2 + my3$bc2cts_i_0r2)
-my3$prop_i_0r3 <- my3$bc1cts_i_0r3 / (my3$bc1cts_i_0r3 + my3$bc2cts_i_0r3)
-my3$prop_i_0r4 <- my3$bc1cts_i_0r4 / (my3$bc1cts_i_0r4 + my3$bc2cts_i_0r4)
-
-my3$prop_f_0r1 <- my3$bc1cts_f_0r1 / (my3$bc1cts_f_0r1 + my3$bc2cts_f_0r1)
-my3$prop_f_0r2 <- my3$bc1cts_f_0r2 / (my3$bc1cts_f_0r2 + my3$bc2cts_f_0r2)
-my3$prop_f_0r3 <- my3$bc1cts_f_0r3 / (my3$bc1cts_f_0r3 + my3$bc2cts_f_0r3)
-my3$prop_f_0r4 <- my3$bc1cts_f_0r4 / (my3$bc1cts_f_0r4 + my3$bc2cts_f_0r4)
-
-my3$prop_i_250r1 <- my3$bc1cts_i / (my3$bc1cts_i + my3$bc2cts_i)
-my3$prop_f_250r1 <- my3$bc1cts_f / (my3$bc1cts_f + my3$bc2cts_f)
-
-my3$mnprop0i <- NA
-my3$mnprop0f <- NA
-for(i in 1:nrow(my3)){
-  my3$mnprop0i[i] <- weighted.mean(my3[i,c("prop_i_0r1", "prop_i_0r2", "prop_i_0r3", "prop_i_0r4")],
-                                    my3[i,c("r0ir1", "r0ir2", "r0ir3", "r0ir4")], na.rm = T)
-  my3$mnprop0f[i] <- weighted.mean(my3[i,c("prop_f_0r1", "prop_f_0r2", "prop_f_0r3", "prop_f_0r4")],
-                                    my3[i,c("r0fr1", "r0fr2", "r0fr3", "r0fr4")], na.rm = T)
-}
-my3$medprop <- apply(cbind(my3$mnprop0i, my3$mnprop0f, my3$prop_i_250r1, my3$prop_f_250r1),
-                  1, median, na.rm = T)
-```
-
-5: Assess variables that affect deltafitness: using sequential term removal via p-value
-```{R}
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop))  +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-car::vif(mymod) # VIF looks okay, proceed to model reduction
-summary(mymod) # medprop is out first.
-AIC(mymod)
-
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-summary(mymod) # final model
-AIC(mymod)
-
-# use this model ------------------------
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
-anova(mymod)
-summary(mymod) # final model
-AIC(mymod)
-```
-
-6: Assess variables that affect deltafitness: using model selection and multimodel inference
-```{R}
-# pairs(my[,c("mndeltafit", "mnccdeltafit", "mnrdeltafit", "mnfit0", "mnfit250", "medcount", "medprop")])
-# term removal strat 1 -----------------------
-mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +I(scale(fit0)) +I(scale(medcount)) +I(scale(medprop)) +treatment +(1|bctID), weights = rdeltafit, data = my3, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)), na.action = "na.fail")
-summary(mymod)
-
-mymod1 <- dredge(mymod)
-
-# model averaging using delata AIC <= 4
-avgmod.delta4 <- model.avg(object = mymod1, subset = delta <= 4)
-summary(avgmod.delta4)
-importance(avgmod.delta4)
-confint(avgmod.delta4)
-
-# model averaging using cumulative sum weights .95 (include models until you get a sum weight of .95)
-avgmod.95p <- model.avg(mymod1, cumsum(weight) <= .95)
-summary(avgmod.95p)
-importance(avgmod.95p)
-confint(avgmod.95p)
-```
-
-
-Analysis: Power Quick Look (NEW NEW NEW)
+Analysis: Power (Look at the numbers)
 ```{r}
-# POC FIT ASSAY -- FITNESS EQUIVALENCE -----------------------------------------
-my <- poc92[order(poc92$bcid),]
-my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
-mymod <- lm(my$rw_corrected ~ my$bcid + 0, weights = my$r); summary(mymod)
+# POC FIT ASSAY -- GET RMSE & EFFECTSIZE ---------------------------------------
+my <- poc92[order(poc92$bcid),] # get data 
+my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r) # calculate mean corrected init fitness
+mymod <- lm(my$rw_corrected ~ my$bcid + 0, weights = my$r); summary(mymod) # model for rmse in POC assays
 myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
 myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+# ------------------------------------------------------------------------------
 
 
-# 250 GEN EXP -- FITNESS EQUIVALENCE -------------------------------------------
-colnames(myfa)
-myfa_0 <- myfa
-my1 <- myfa_0[, c("rep","bc1", "bctID", "fit0r1", "rfit0r1"),]; my1 <- my1[my1$rep == 1,]
-my2 <- myfa_0[, c("rep","bc1", "bctID", "fit0r2", "rfit0r2"),]; my2 <- my2[my2$rep == 2,]
-my3 <- myfa_0[, c("rep","bc1", "bctID", "fit0r3", "rfit0r3"),]; my3 <- my3[my3$rep == 3,]
-my4 <- myfa_0[, c("rep","bc1", "bctID", "fit0r4", "rfit0r4"),]; my4 <- my4[my4$rep == 4,]
-colnames(my1) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
-colnames(my2) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
-colnames(my3) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
-colnames(my4) <- c("rep", "bc1", "bctID", "fit0", "rfit0")
-myfa_0 <- rbind(my1, my2, my3, my4)
-my <- myfa_0
-my$bc1 <- as.factor(my$bc1); my$bctID <- as.factor(my$bctID)
 
-# Same as poc version --------------------------------------
-my$fit0_c <- my$fit0 - weighted.mean(my$fit0, my$rfit0)
-mymod <- lm(my$fit0_c~ my$bc1 + 0, weights = my$rfit0); summary(mymod)
-myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~3.22 fitness dif 
-myeffectsize <- 1/myrmse # effect size of 1 is a 3.22 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-
+# POC FIT ASSAY -- CACULATE ESTIMATED POWER TO DETECT TREAT EFF IN NEXT EXP ----
 # power to detect treat effects
 pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
-pow$power # 95.1% power to detect treatment fitness differences of 1.00%
-
-# split by bctID, rather than just BC to get 4 per. --------
-my$fit0_c <- my$fit0 - weighted.mean(my$fit0, my$rfit0)
-mymod <- lm(my$fit0_c~ my$bctID + 0, weights = my$rfit0); summary(mymod)
-myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~2.92 fitness dif 
-myeffectsize <- 1/myrmse # effect size of 1 is a 2.92 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-
-# power to detect treat effects
-pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
-pow$power # 96.6% power to detect treatment fitness differences of 1.00%
+pow$power # 99.8% power to detect treatment fitness differences of 1.00%
+# ------------------------------------------------------------------------------
 
 
 
-
-# 250 GEN EXP -- USING DELTA FIT -----------------------------------------------
-my <- myfa[order(myfa$bctID),]
-mymod <- lm(my$deltafit ~ my$bctID + 0, weights = my$rdeltafit); summary(mymod)
-myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
-myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-
-# power to detect treat effects
-pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
-pow$power # 87.7% power to detect treatment fitness differences of 1.00%
-
-# 250 GEN EXP -- USING FIT 250 -------------------------------------------------
-my <- myfa[order(myfa$bctID),]
-mymod <- lm(my$fit25 ~ my$bctID + 0, weights = my$rfit25); summary(mymod)
-myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.34 fitness dif
-myeffectsize <- 1/myrmse # effect size of 1 is a 4.34 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-
-# power to detect treat effects
-pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
-pow$power # 87.5% power to detect treatment fitness differences of 1.00%
-
-
-
-
-# now some power calculations for fitness difference detection by barcode  --------------------------------------------------
-# 1. Power to detect fitness divergence (from self or from reference, same math -- so works for fitness divergence from ancestor (init fit) and fitness change)
-#   a. POC data -- These are t-tests, so the pwr calc needs psd, not rmse (discuss with JF)
-#   b. 250 gen exp -- These are t-tests, so the pwr calc needs psd, not rmse (discuss with JF)
-
-# 1. a
+# POC FIT ASSAY -- CALCULATE POWER TO DETECT FITNESS DIFFERENCE FOR INDIV BCS --
 my <- poc92
 my1 <- my[my$exp == 1,]; colnames(my1) <- paste0(colnames(my1), "_R1")
 my2 <- my[my$exp == 2,]; colnames(my2) <- paste0(colnames(my2), "_R2")
@@ -1043,15 +768,30 @@ pow$power # 67% power to detect 1% fit change.
 
 pow <- pwr.t.test(power = 0.8, n=4, sig.level = 0.05)
 pow$d*psd # 80% power to detect ~1.2% fitness difference
+# ------------------------------------------------------------------------------
 
 
-# 1. b
-# power to detect fitness increase / decrease (t-tests) --------------------------------------------
+
+# 250 GEN EXP -- GET RMSE & EFFECTSIZE -----------------------------------------
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$deltafit ~ my$bctID + 0, weights = my$rdeltafit); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+# ------------------------------------------------------------------------------
+
+
+
+# 250 GEN EXP -- CACULATE  POWER TO DETECT TREAT EFF ---------------------------
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
+pow$power # 87.7% power to detect treatment fitness differences of 1.00%
+# ------------------------------------------------------------------------------
+
+
+# 250 GEN EXP -- CALCULATE POWER TO DETECT INDIV BC FIT CHANGE -----------------
+# power to detect fitness increase / decrease (t-tests)
 # d = m1 - m2 / q; m1 is mean group 1, m2 is mean group 2, q is common standard deviation in the two groups
 # here m1 is change in fitness and m2 is 0. mean q is used and is the weighted mean of all
 # population standard deviation of the four replicate sets in each row of the dataset.
-
-# get data and ccalculate d -----------
 my <- myfa_w
 my$psd_r1 <- ((my$deltafit-my$mndeltafit)^2)/4
 my$psd_r2 <- ((my$deltafit_2-my$mndeltafit)^2)/4
@@ -1066,29 +806,111 @@ pow # 16% power to detect 1% fit change.
 
 pow <- pwr.t.test(power = 0.8, n=4, sig.level = 0.05)
 pow$d*psd # 80% power to detect ~3% fitness change
-
+# ------------------------------------------------------------------------------
+rm(my, my1, my10, my2, my3, my4, my5, my6, my7, my8, my9, mymod, pow, i, myeffectsize, myrmse, psd)
 ```
+<br/><br/>
 
 
-
-
-Analysis: Assess power to detect fitness change in this experimental evolution system, given replicate variance in the POC fitness assay dataset. 
+Analysis: Power (Vizualize)
 ```{r}
+# POC DATA -----------------------------------------------------------------------------------------
+
+# individual bc ----------------------------------------------------------------
+my <- poc92 # conduct necessary calculations
+my1 <- my[my$exp == 1,]; colnames(my1) <- paste0(colnames(my1), "_R1")
+my2 <- my[my$exp == 2,]; colnames(my2) <- paste0(colnames(my2), "_R2")
+my3 <- my[my$exp == 3,]; colnames(my3) <- paste0(colnames(my3), "_R3")
+my4 <- my[my$exp == 4,]; colnames(my4) <- paste0(colnames(my4), "_R4")
+my5 <- my[my$exp == 5,]; colnames(my5) <- paste0(colnames(my5), "_R5")
+my6 <- my[my$exp == 6,]; colnames(my6) <- paste0(colnames(my6), "_R6")
+my7 <- my[my$exp == 7,]; colnames(my7) <- paste0(colnames(my7), "_R7")
+my8 <- my[my$exp == 8,]; colnames(my8) <- paste0(colnames(my8), "_R8")
+my9 <- my[my$exp == 9,]; colnames(my9) <- paste0(colnames(my9), "_R9")
+my10 <- my[my$exp == 10,]; colnames(my10) <- paste0(colnames(my10), "_R10")
+poc92_w <- cbind(my1, my2, my3, my4, my5, my6, my7, my8, my9, my10)
+
+for(i in 1:nrow(poc92_w)){
+  poc92_w$mnrw[i] <- weighted.mean(poc92_w[i,c("rw_R1", "rw_R2", "rw_R3", "rw_R4", "rw_R5", "rw_R6", "rw_R7", "rw_R8", "rw_R9", "rw_R10")],
+                                    poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+  poc92_w$mnr[i] <- rowMeans(poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+}
+
+my <- poc92_w
+my$psd_r1 <- ((my$rw_R1-my$mnrw)^2)/10
+my$psd_r2 <- ((my$rw_R2-my$mnrw)^2)/10
+my$psd_r3 <- ((my$rw_R3-my$mnrw)^2)/10
+my$psd_r4 <- ((my$rw_R4-my$mnrw)^2)/10
+my$psd_r5 <- ((my$rw_R5-my$mnrw)^2)/10
+my$psd_r6 <- ((my$rw_R6-my$mnrw)^2)/10
+my$psd_r7 <- ((my$rw_R7-my$mnrw)^2)/10
+my$psd_r8 <- ((my$rw_R8-my$mnrw)^2)/10
+my$psd_r9 <- ((my$rw_R9-my$mnrw)^2)/10
+my$psd_r10 <- ((my$rw_R10-my$mnrw)^2)/10
+my$psd_m <- rowMeans(cbind(my$psd_r1, my$psd_r2, my$psd_r3, my$psd_r4, my$psd_r5, my$psd_r6, my$psd_r7, my$psd_r8, my$psd_r9, my$psd_r10), na.rm = T)
+my$psd <- sqrt(my$psd_m) # get the pop standard dev for each entry
+psd <- weighted.mean(my$psd, my$mnr, na.rm = T) # get the weighted mean pop standard dev for reporting
+
+# prepare plot data ----------------------------------------
+mypower <- matrix(nrow=22*3, ncol = 5); colnames(mypower) <- c("fitchange", "psd", "n", "power", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$fitchange <- c(0.0025, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22)
+mypower$psd <- psd
+mypower$n <- c(rep(2,22), rep(3,22), rep(4,22))
+mypower$power <- NA
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,22), rep(2,22), rep(3,22))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.t.test(d=mypower$fitchange[i] / mypower$psd[i],
+                               n=mypower$n[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+
+# model output -----------------------------------------------------------------
+mypower2 <- round(mypower[,1:5], digits = 5)
+tab_df(mypower2, file = "000_Additional_File_5.html")
+# -----------------------------------------------------------------------------
+
+
+# Plotting -------------------------------------------------
+# plot effect size x power -------------
+mypower$n <- factor(mypower$n, levels = c(4,3,2))
+p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
+  geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
+  geom_line(aes(color=n))+
+  geom_point(aes(color=n))+
+  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  scale_x_continuous(name = "", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0, 0.1))+
+  labs(color = "n (replicates \n per timepoint)")+
+  theme_classic()+
+  labs(tag = "A")+
+  theme(legend.position = "none")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+p
+
+pA <- p
+
+
+
+# treatment --------------------------------------------------------------------
 # run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
 my <- poc92[order(poc92$bcid),]
 my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
 mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
-
-# calculate rmse -------------------------------------------------
 myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
 myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
-
-# power to detect treatment effects ------------------------------
 myv <- (22*2) -1 - 1
 mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = myeffectsize, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
-# mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = 0.5, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
 
-# prepare plot data ----------------------------------------
+# prepare plot data ----------
 mypower <- matrix(nrow=100, ncol = 5); colnames(mypower) <- c("u", "v", "power", "f2", "sig.level")
 mypower <- as.data.frame(mypower)
 mypower$u <- 1
@@ -1108,12 +930,14 @@ for(i in 1:nrow(mypower)){
   mypower$power[i] <- pow$power
 }
 
-# Plotting -------------------------------------------------
-# plotting setup -----------------------
+# model output -----------------------------------------------------------------
+mypower2 <- round(mypower[,1:5], digits = 5)
+tab_df(mypower2, file = "000_Additional_File_6.html")
+# -----------------------------------------------------------------------------
+
+# plot -----------------------
 myheight <- 7
 mywidth <- 7
-
-# plot effect size x power -------------
 mypower$n <- mypower$v + 2
 mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
 mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
@@ -1124,31 +948,23 @@ p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
   geom_point(aes(color=n))+
   geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
   theme_classic()+
-  ggtitle("power to detect fitness differences between two treatments \n with n total barcodes")+
+  labs(tag ="B")+
   labs(color = "n (total barcodes)")+
-  scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
+  scale_x_continuous(name = "", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
                                                                                 myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
                                                                                 myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
-                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))
+                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
+  theme(legend.position = "none")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 p
-pdf(file = paste("000_m_FitChangeTreatDif_PowerByRMSE_effectsizexpower.pdf"), width = mywidth, height = myheight); p; dev.off()
-
-# plot n barcodes x power --------------
-mypower$n <- as.numeric(levels(mypower$n))[mypower$n]
-mypower$f2 <- factor(round(mypower$f2,2), levels = c(sort(unique(round(mypower$f2,2)), decreasing = T)))
-p<-ggplot(mypower, aes(x=n, y=power, group=f2)) +
-  geom_vline(xintercept = 44, linetype = "dashed", color = "darkgray")+
-  geom_line(aes(color=f2))+
-  geom_point(aes(color=f2))+
-  geom_point(x = 44, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
-  theme_classic()+
-  scale_x_continuous(name = "n (total barcodes)", breaks = c(4, 10, 15, 21, 27, 33, 38, 44), labels = c(4, 10, 15, 21, 27, 33, 38, 44))+
-  ggtitle("power to detect fitness differences between two treatments \n with n total barcodes")+
-  scale_color_discrete(name = "Fitness Difference \n between Treatments", labels = rev(c("0.05%","0.1%", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%")))
-p
-pdf(file = paste("000_m_FitChangeTreatDif_PowerByRMSE_nxpower.pdf"), width = mywidth, height = myheight); p; dev.off()
+pB <- p
 
 
+
+
+# 250gen DATA -----------------------------------------------------------------------------------------
+
+# individual BC ----------------------------------------------------------------
 # power to detect fitness increase / decrease (t-tests) --------------------------------------------
 # d = m1 - m2 / q; m1 is mean group 1, m2 is mean group 2, q is common standard deviation in the two groups
 # here m1 is change in fitness and m2 is 0. mean q is used and is the weighted mean of all
@@ -1181,6 +997,11 @@ for(i in 1:nrow(mypower)){
   mypower$power[i] <- pow$power
 }
 
+# model output -----------------------------------------------------------------
+mypower2 <- round(mypower[,1:5], digits = 5)
+tab_df(mypower2, file = "000_Additional_File_9.html")
+# -----------------------------------------------------------------------------
+
 # Plotting -------------------------------------------------
 # plot effect size x power -------------
 mypower$n <- factor(mypower$n, levels = c(4,3,2))
@@ -1195,135 +1016,119 @@ p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
   geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
   geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
   geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  scale_x_continuous(name = "Fitness Change", breaks = c(0.01, 0.025, 0.05, 0.1, 0.15, 0.2), labels = c("1%", "2.5%", "5%", "10%", "15%", "20%"))+
+  scale_x_continuous(name = "Fitness Change", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0,0.1))+
   labs(color = "n (replicates \n per timepoint)")+
   theme_classic()+
-  ggtitle("power to detect fitness change in 500 generations with n entries per timepoint")
-p
+  labs(tag ="C")+
+  theme(legend.direction = "horizontal")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+legend1 <- get_legend(p)
+p <- p + theme(legend.position="none")
+pC <- p
 
 
-pp<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
-  geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
+
+
+
+# treatment --------------------------------------------------------------------
+# run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$deltafit ~ my$bctID + 0, weights = my$rdeltafit); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treatment effects ------------------------------
+myv <- (22*2) -1 - 1
+mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = myeffectsize, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
+
+# prepare plot data ----------------------------------------
+mypower <- matrix(nrow=100, ncol = 5); colnames(mypower) <- c("u", "v", "power", "f2", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$u <- 1
+mypower$v <- c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1)
+mypower$power <- NA
+mypower$f2 <- c(rep(myeffectsize*2,10), rep(myeffectsize*1.75,10), rep(myeffectsize*1.5,10),
+                rep(myeffectsize*1.25,10), rep(myeffectsize*1,10), rep(myeffectsize*.75,10), 
+                rep(myeffectsize*.5,10), rep(myeffectsize*.25,10),  rep(myeffectsize*.1,10),  rep(myeffectsize*.05,10))
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,10), rep(2,10), rep(3,10), rep(4,10), rep(5,10), rep(6,10), rep(7,10), rep(8,10), rep(9,10), rep(10,10))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.f2.test(u=mypower$u[i],
+                               v=mypower$v[i],
+                               f2=mypower$f2[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+
+# model output -----------------------------------------------------------------
+mypower2 <- round(mypower[,1:5], digits = 5)
+tab_df(mypower2, file = "000_Additional_File_10.html")
+# -----------------------------------------------------------------------------
+
+myheight <- 7
+mywidth <- 7
+mypower$n <- mypower$v + 2
+mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
+mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
+
+p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
+  geom_vline(xintercept = myeffectsize, linetype = "dashed", color = "darkgray")+
   geom_line(aes(color=n))+
   geom_point(aes(color=n))+
-  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  ggtitle(NULL)+ xlab(NULL)+ ylab(NULL)+
+  geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
   theme_classic()+
-  theme(legend.position = "none")+
-  scale_x_continuous(limits = c(0, 0.05), breaks = c(0.01, 0.025, 0.05), labels = c("1%", "2.5%", "5%"))+
-  theme(plot.background = element_rect(colour = "black"))
-pp
+  labs(tag = "D")+
+  labs(color = "n (total barcodes \n in two treatments))")+
+  scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
+                                                                                myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
+                                                                                myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
+                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
+  theme(legend.direction = "horizontal")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ppp <- p + annotation_custom(ggplotGrob(pp), xmin = 0.125, xmax = .225, ymin = 0.025, ymax = 0.5)
-ppp
-pdf(file = paste("000_m_FitChangeIncDec_PowerByRMSE_effectsizexpower.pdf"), width = mywidth, height = myheight); ppp; dev.off()
-
-# plot n replicates x power -------------
-mypower$n <- as.numeric(levels(mypower$n))[mypower$n]
-mypower$fitchange <- factor(mypower$fitchange, levels = c(sort(unique(mypower$fitchange), decreasing = T)))
-p<-ggplot(mypower, aes(x=n, y=power, group=fitchange)) +
-  geom_line(aes(color=fitchange))+
-  geom_point(aes(color=fitchange))+
-  scale_x_continuous(name = "n (replicates per timepoint)", breaks = c(2, 3, 4), labels = c(2, 3, 4))+
-  theme_classic()+
-  ggtitle("power to detect fitness change in 500 generations with n entries per timepoint")+
-  scale_color_discrete(name = "Fitness Change", labels = rev(c("0.25%", "0.5%", "1%", "1.5%", "2%", "2.5%", "3%", "3.5%",
-                                                               "4%", "45%", "5%", "6%", "7%", "8%", "9%", "10%", "12%", 
-                                                               "14%", "16%", "18%", "20%", "22%")))
+legend2 <- get_legend(p)
+p <- p + theme(legend.position="none")
 p
-pdf(file = paste("000_m_FitChangeIncDec_PowerByRMSE_nxpower.pdf"), width = mywidth, height = myheight); p; dev.off()
-```
-NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW NEW
+pD <- p
 
-
-
-
-
-Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
-```{r}
-my <- myfa[order(myfa$bctID),] # placeholder dataframe
-# model & diagnostic plots ----------------------------------------------------
-mymod <- lmer(scale(deltafit) ~ scale(ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))); summary(mymod) # problems with convergence here...solved with an optimizer and some extra iterations.
-# mymod <- lm(my$deltafit ~ my$ccdeltafit + my$treatment, weights = my$rdeltafit);r.squaredGLMM(mymod) # get the r2 for the lm version of the model if desired. 
-
-hist(residuals(mymod), breaks = 100)
-hist(expand_residuals(mymod, my$rdeltafit), breaks = 100) # this more accurately represents the distribution of residuals in the model output. -- tails look fine here. 
-anova(mymod) # test term significance
-# -----------------------------------------------------------------------------
-
-# model output -----------------------------------------------------------------=
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Table_S8.html") # r2 on the lm version of htis model is 0.3059, adjusted = 0.299
-# -----------------------------------------------------------------------------
-
-# Visualize -------------------------------------------------------------------
-mymod <- lmer((deltafit) ~ (ccdeltafit) + treatment + (1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4))) # problems with convergence here...solved with an optimizer and some extra iterations.
-myx <- my$treatment
-myy <- my$deltafit
-myr <- my$rdeltafit
-myc <- my$treatment
-
-mytitle <- NULL
-myylab <- "Fitness change"
-myxlab <- "Treatment"
-
-myoutline <-  "grey20"
-myfill <-  "grey90"
-myfillapha <- 0.35
-myptalpha <- 0.35
-mylinealpha <- 0.35
-
-mypalette <- setpalette
-mytextsize <- 8
-myheight <- 3.5
-mywidth <- 7
-myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
-
-
-p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
-  geom_violin(color = myoutline, fill = myfill, draw_quantiles = NULL, inherit.aes = F, aes( x=myx, y=myy), trim = T) + 
-  geom_jitter(width =0.15, height = 0, alpha = myptalpha, size = myptsize) +
-  geom_segment(x=5.90, xend=6.10, y = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), yend = weighted.mean(myy[myx == "CMhaploid0.001"], myr[myx == "CMhaploid0.001"]), color = myoutline) +
-  geom_segment(x=4.90, xend=5.10, y = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), yend = weighted.mean(myy[myx == "CMdiploid0.004"], myr[myx == "CMdiploid0.004"]), color = myoutline) +
-  geom_segment(x=3.90, xend=4.10, y = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), yend = weighted.mean(myy[myx == "CMdiploid0.00025"], myr[myx == "CMdiploid0.00025"]), color = myoutline) +
-  geom_segment(x=2.90, xend=3.10, y = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Saltdiploid0.001"], myr[myx == "CM+Saltdiploid0.001"]), color = myoutline) +
-  geom_segment(x=1.90, xend=2.10, y = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), yend = weighted.mean(myy[myx == "CM+Ethanoldiploid0.001"], myr[myx == "CM+Ethanoldiploid0.001"]), color = myoutline) +
-  geom_segment(x=0.90, xend=1.10, y = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), yend = weighted.mean(myy[myx == "CMdiploid0.001"], myr[myx == "CMdiploid0.001"]), color = myoutline) +
-  geom_rug(sides = "b" , position = position_nudge(x=-0.75), alpha = myptalpha)+
-  scale_color_manual(values =mypalette) + 
-  geom_hline(yintercept = 0, lty = "dotted") + 
-  coord_flip() +
-  theme_classic()+
-  theme(legend.position="none") +
-  ggtitle(mytitle) + ylab(myylab) + xlab(myxlab)+
-  scale_x_discrete(labels = c("CM \n Diploid \n 0.001", "CM+EtOH \n Diploid \n 0.001", "CM+NaCl \n Diploid \n 0.001", "CM \n Diploid \n 0.00025", "CM \n Diploid \n 0.004", "CM \n Haploid \n 0.001")) +
-  scale_y_continuous(breaks = seq(-.25,.55,by=.05),
-                     labels = c("", "-0.2", "", "-0.1", "", "0", "", "0.1", "", "0.2", "", "0.3", "", "0.4", "", "0.5", ""),
-                     limits = c(-.25, .55))+
-  theme(axis.title.y = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
-  theme(axis.text.y = element_text(size = 8, angle = 0))+
-  theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,5,6), y=c(.14,.55,.15,.46), label = c("**", "***", "***", "*"), size = 8, fontface = "bold")
-  
-p 
-# -----------------------------------------------------------------------------
-
-# figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_5.pdf", width = mywidth, height = myheight); p; dev.off()
-# -----------------------------------------------------------------------------
-rm(my, mymod, weights)
+# Plot using grid and output ---------------------------------------------------
+mywidth <- 6.69
+myheight <- 6.69
+pdf(file = "000_Figure_3.pdf", width = mywidth, height = myheight)
+grid.arrange( grid::textGrob("POC Fitness \n Assays", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
+              grid::textGrob("250-Generation \n Experiment", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
+              pA,pB,
+              pC,pD,
+              legend1, legend2,
+  layout_matrix = rbind(c(1,3,3,3,3,4,4,4,4,4,4),
+                        c(1,3,3,3,3,4,4,4,4,4,4),
+                        c(1,3,3,3,3,4,4,4,4,4,4),
+                        c(1,3,3,3,3,4,4,4,4,4,4),
+                        c(2,5,5,5,5,6,6,6,6,6,6),
+                        c(2,5,5,5,5,6,6,6,6,6,6),
+                        c(2,5,5,5,5,6,6,6,6,6,6),
+                        c(2,5,5,5,5,6,6,6,6,6,6),
+                        c(7,7,7,7,7,7,7,7,7,7,7),
+                        c(8,8,8,8,8,8,8,8,8,8,8)))
+dev.off() # one column wide, equal height
+# ------------------------------------------------------------------------------
+rm(legend1, legend2, my, my1, my2, my3, my4, my5, my6, my7, my8, my9, my10, mymod, mypower, mypower2, p, pA, pB, pC, pD, pow, i,
+   myeffectsize, myheight, mypowersize, myrmse, myv, mywidth, psd)
 ```
 <br/><br/>
 
 
 Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
 ```{r}
+my <- myfa[order(myfa$bctID),] # placeholder dataframe
+# model & diagnostic plots ----------------------------------------------------
+mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +treatment +(1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
+# model output -----------------------------------------------------------------=
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_13.html")
+# -----------------------------------------------------------------------------
+
+
 my <- myfa_w[order(myfa_w$bctID),] # placeholder dataframe
 my <- my[my$sedeltafit < 0.029,]
 min(my$mndeltafit)
@@ -1346,8 +1151,8 @@ mylinealpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
-myheight <- 3.5
-mywidth <- 7
+myheight <- 3.345
+mywidth <- 6.69
 myptsize <- ((((myr/max(myr))*10)*((myheight*mywidth)/(7^2))) - min(((myr/max(myr))*10)*((myheight*mywidth)/(7^2))))+1
 
 
@@ -1375,15 +1180,16 @@ p <- ggplot(my, aes(x=myx, y=myy, weight = myr, color = myc)) +
   theme(axis.title.x = element_text(size = 8, face = "bold", margin = margin(0,0,0,0, "pt")))+
   theme(axis.text.y = element_text(size = 8, angle = 0))+
   theme(axis.text.x = element_text(size = 8, angle = 0))+
-  annotate("text", x=c(2,3,4,5.25,6), y=c(.065,.25,.045,.09,.115), label = c("***", "***", "*", ".", "***"), size = 8, fontface = "bold")
+  annotate("text", x=c(2,3,4,5,6), y=c(.065,.25,.045,.095,.115), label = c("**", "***", "", "***", "*"), size = 8, fontface = "bold")
   
 p 
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_4.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Figure_5.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, weights)
+rm(p, myc, myfill, myfillapha, myheight, mylinealpha, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, myx, myxlab, mywidth, myy, myylab)
 ```
 <br/><br/>
 
@@ -1393,9 +1199,6 @@ Analysis: Calculate fixation rate summaries by treatment for the 250-generation 
 ```{r}
 my <- myevo[order(myevo$bctID),] # placeholder dataframe
 # Review Results --------------------------------------------------------------
-# my[my$fixed == T,] # these are the fixed wells
-# my$treatment[my$fixed == T] # these are the treatments of the fixed wells
-
 paste0("proportion of wells that attained fixation (n=76 total wells)= ", nrow(my[my$fixed == T,])/nrow(my))  # prop fixed
 
 # CM diploid 1:1000
@@ -1454,7 +1257,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S11.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_14.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1466,6 +1269,10 @@ myc <- my$treatment
 mytitle <- NULL
 myylab <- "T-MAX (Generation)"
 myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1500,9 +1307,10 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_15.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
@@ -1528,7 +1336,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S12.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_16.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1580,9 +1388,10 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S4.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_17.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab, myfillapha, mylinealpha)
 ```
 <br/><br/>
 
@@ -1608,7 +1417,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S13.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_18.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1620,6 +1429,10 @@ myc <- my$treatment
 mytitle <- NULL
 myylab <- "T-MAX-RATE"
 myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1654,9 +1467,10 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S5.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_19.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
@@ -1682,7 +1496,8 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S14.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_20.html")
+
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1695,6 +1510,9 @@ mytitle <- NULL
 myylab <-"M-MAX-RATE"
 myxlab <- "Treatment"
 
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1729,9 +1547,10 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S6.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_21.pdf", width = mywidth, height = myheight); p; dev.off()
+
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
@@ -1754,7 +1573,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S15.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_22.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1766,6 +1585,10 @@ myc <- my$treatment
 mytitle <- NULL
 myylab <- "T-MAX-DIFF"
 myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1799,9 +1622,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S7.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_23.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
@@ -1823,7 +1646,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S16.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_24.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1835,6 +1658,10 @@ myc <- my$treatment
 mytitle <- NULL
 myylab <- "M-MAX-DIFF"
 myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1869,9 +1696,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S8.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_25.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
@@ -1897,7 +1724,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Table_S17.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_26.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1909,6 +1736,10 @@ myc <- my$treatment
 mytitle <- NULL
 myylab <- "Total Change in Abundance"
 myxlab <- "Treatment"
+
+myoutline <-  "grey20"
+myfill <-  "grey90"
+myptalpha <- 0.35
 
 mypalette <- setpalette
 mytextsize <- 8
@@ -1943,9 +1774,9 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Figure_S9.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Additional_File_27.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
-rm(my, mymod, p)
+rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
 <br/><br/>
 
