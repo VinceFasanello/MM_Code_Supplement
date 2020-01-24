@@ -272,6 +272,12 @@ paste0("matching counts (match f and r primer barcode, and moby bc): ", sum(c(po
 paste0("analysis counts: ", sum(c(poc.ce, poc.cc, faevo.ce, faevo.cc), na.rm = T)) # expected and cc counts in the analysis data
 paste0("expected analysis counts: ", sum(c(poc.ce,faevo.ce), na.rm = T)) # expected counts in the analysis data
 paste0("median counts per barcode: ",median(c(poc.ce, faevo.ce),  na.rm = T)) # median number of counts per barcode in the expected counts dataset.
+
+
+paste0("median counts per barcode: ",median(c(faevo.ce),  na.rm = T)) # median number of counts per barcode in the expected counts dataset.
+paste0("median counts per barcode: ",median(c(poc.ce),  na.rm = T)) # median number of counts per barcode in the expected counts dataset.
+my <- c(faevo.ce, poc.ce)
+median(my, na.rm = T)
 ```
 <br/><br/>
 
@@ -573,8 +579,6 @@ mytextsize <- 8
 myheight <- 3.345
 mywidth <- 3.345
 
-
-# p <- ggplot(myres, aes(x=myx, color = myc, fill = myc)) + 
 p <- ggplot(myres[myres$se_deltafit < 0.029,], aes(x=myx, color = myc, fill = myc)) + 
   geom_histogram(alpha = myfillapha, position = "identity", binwidth = mybinwidth) +
   geom_vline(xintercept = weighted.mean(myx, myr), linetype = "dashed", color = myhighlight) +
@@ -786,6 +790,11 @@ pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), f2=myeffectsize, sig.level = 0.05)
 pow$power # 87.7% power to detect treatment fitness differences of 1.00%
 # ------------------------------------------------------------------------------
 
+# 250 GEN EXP -- CACULATE  POWER TO DETECT TREAT EFF ---------------------------
+pow <- pwr.f2.test(u= 1, v= ((22*2) -1 - 1), power = 0.8, sig.level = 0.05)
+pow$f2*myrmse # 80% power to detect 0.81% fitness difference 
+# ------------------------------------------------------------------------------
+
 
 # 250 GEN EXP -- CALCULATE POWER TO DETECT INDIV BC FIT CHANGE -----------------
 # power to detect fitness increase / decrease (t-tests)
@@ -807,12 +816,40 @@ pow # 16% power to detect 1% fit change.
 pow <- pwr.t.test(power = 0.8, n=4, sig.level = 0.05)
 pow$d*psd # 80% power to detect ~3% fitness change
 # ------------------------------------------------------------------------------
+
+
+
+# take a look at gen0 and gen250 rmse in the 250 gen exp -----------------------
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$fit25 ~ my$bctID + 0, weights = my$rfit25); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+my <- myfa[order(myfa$bctID),]
+colnames(my)
+my$fit0_rep <- NA
+my$rfit0_rep <- NA
+my$fit0_rep[my$rep == 1] <- my$fit0r1[my$rep == 1]
+my$fit0_rep[my$rep == 2] <- my$fit0r2[my$rep == 2]
+my$fit0_rep[my$rep == 3] <- my$fit0r3[my$rep == 3]
+my$fit0_rep[my$rep == 4] <- my$fit0r4[my$rep == 4]
+
+my$rfit0_rep[my$rep == 1] <- my$rfit0r1[my$rep == 1]
+my$rfit0_rep[my$rep == 2] <- my$rfit0r2[my$rep == 2]
+my$rfit0_rep[my$rep == 3] <- my$rfit0r3[my$rep == 3]
+my$rfit0_rep[my$rep == 4] <- my$rfit0r4[my$rep == 4]
+
+mymod <- lm(my$fit0_rep ~ my$bctID + 0, weights = my$rfit0_rep); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+
 rm(my, my1, my10, my2, my3, my4, my5, my6, my7, my8, my9, mymod, pow, i, myeffectsize, myrmse, psd)
 ```
 <br/><br/>
 
 
-Analysis: Power (Vizualize)
+Analysis: Power (Table Output) + Commented Code to produce POWER SURFACE WITH VARIABLE N (COMMENTED VIZ NOT USED IN MANUSCRIPT -- uncomment all commented lines here to create an alternative figure_3 with additional data included)
 ```{r}
 # POC DATA -----------------------------------------------------------------------------------------
 
@@ -874,29 +911,29 @@ tab_df(mypower2, file = "000_Additional_File_5.html")
 # -----------------------------------------------------------------------------
 
 
-# Plotting -------------------------------------------------
-# plot effect size x power -------------
-mypower$n <- factor(mypower$n, levels = c(4,3,2))
-p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
-  geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
-  geom_line(aes(color=n))+
-  geom_point(aes(color=n))+
-  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  scale_x_continuous(name = "", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0, 0.1))+
-  labs(color = "n (replicates \n per timepoint)")+
-  theme_classic()+
-  labs(tag = "A")+
-  theme(legend.position = "none")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-p
-
-pA <- p
+# # Plotting -------------------------------------------------
+# # plot effect size x power -------------
+# mypower$n <- factor(mypower$n, levels = c(4,3,2))
+# p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
+#   geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
+#   geom_line(aes(color=n))+
+#   geom_point(aes(color=n))+
+#   geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   scale_x_continuous(name = "", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0, 0.1))+
+#   labs(color = "n (replicates \n per timepoint)")+
+#   theme_classic()+
+#   labs(tag = "A")+
+#   theme(legend.position = "none")+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# p
+# 
+# pA <- p
 
 
 
@@ -935,31 +972,29 @@ mypower2 <- round(mypower[,1:5], digits = 5)
 tab_df(mypower2, file = "000_Additional_File_6.html")
 # -----------------------------------------------------------------------------
 
-# plot -----------------------
-myheight <- 7
-mywidth <- 7
-mypower$n <- mypower$v + 2
-mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
-mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
-
-p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
-  geom_vline(xintercept = myeffectsize, linetype = "dashed", color = "darkgray")+
-  geom_line(aes(color=n))+
-  geom_point(aes(color=n))+
-  geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
-  theme_classic()+
-  labs(tag ="B")+
-  labs(color = "n (total barcodes)")+
-  scale_x_continuous(name = "", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
-                                                                                myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
-                                                                                myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
-                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
-  theme(legend.position = "none")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-p
-pB <- p
-
-
+# # plot -----------------------
+# myheight <- 7
+# mywidth <- 7
+# mypower$n <- mypower$v + 2
+# mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
+# mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
+# 
+# p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
+#   geom_vline(xintercept = myeffectsize, linetype = "dashed", color = "darkgray")+
+#   geom_line(aes(color=n))+
+#   geom_point(aes(color=n))+
+#   geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
+#   theme_classic()+
+#   labs(tag ="B")+
+#   labs(color = "n (total barcodes)")+
+#   scale_x_continuous(name = "", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
+#                                                                                 myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
+#                                                                                 myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
+#                      labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
+#   theme(legend.position = "none")+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# p
+# pB <- p
 
 
 # 250gen DATA -----------------------------------------------------------------------------------------
@@ -1002,29 +1037,29 @@ mypower2 <- round(mypower[,1:5], digits = 5)
 tab_df(mypower2, file = "000_Additional_File_9.html")
 # -----------------------------------------------------------------------------
 
-# Plotting -------------------------------------------------
-# plot effect size x power -------------
-mypower$n <- factor(mypower$n, levels = c(4,3,2))
-p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
-  geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
-  geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
-  geom_line(aes(color=n))+
-  geom_point(aes(color=n))+
-  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
-  scale_x_continuous(name = "Fitness Change", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0,0.1))+
-  labs(color = "n (replicates \n per timepoint)")+
-  theme_classic()+
-  labs(tag ="C")+
-  theme(legend.direction = "horizontal")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-legend1 <- get_legend(p)
-p <- p + theme(legend.position="none")
-pC <- p
+# # Plotting -------------------------------------------------
+# # plot effect size x power -------------
+# mypower$n <- factor(mypower$n, levels = c(4,3,2))
+# p<-ggplot(mypower, aes(x=fitchange, y=power, group=n)) +
+#   geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
+#   geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
+#   geom_line(aes(color=n))+
+#   geom_point(aes(color=n))+
+#   geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+#   scale_x_continuous(name = "Fitness Change", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0,0.1))+
+#   labs(color = "n (replicates \n per timepoint)")+
+#   theme_classic()+
+#   labs(tag ="C")+
+#   theme(legend.direction = "horizontal")+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# legend1 <- get_legend(p)
+# p <- p + theme(legend.position="none")
+# pC <- p
 
 
 
@@ -1066,57 +1101,322 @@ mypower2 <- round(mypower[,1:5], digits = 5)
 tab_df(mypower2, file = "000_Additional_File_10.html")
 # -----------------------------------------------------------------------------
 
-myheight <- 7
-mywidth <- 7
-mypower$n <- mypower$v + 2
-mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
-mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
-
-p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
-  geom_vline(xintercept = myeffectsize, linetype = "dashed", color = "darkgray")+
-  geom_line(aes(color=n))+
-  geom_point(aes(color=n))+
-  geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
-  theme_classic()+
-  labs(tag = "D")+
-  labs(color = "n (total barcodes \n in two treatments))")+
-  scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
-                                                                                myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
-                                                                                myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
-                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
-  theme(legend.direction = "horizontal")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-legend2 <- get_legend(p)
-p <- p + theme(legend.position="none")
-p
-pD <- p
-
-# Plot using grid and output ---------------------------------------------------
-mywidth <- 6.69
-myheight <- 6.69
-pdf(file = "000_Figure_3.pdf", width = mywidth, height = myheight)
-grid.arrange( grid::textGrob("POC Fitness \n Assays", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
-              grid::textGrob("250-Generation \n Experiment", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
-              pA,pB,
-              pC,pD,
-              legend1, legend2,
-  layout_matrix = rbind(c(1,3,3,3,3,4,4,4,4,4,4),
-                        c(1,3,3,3,3,4,4,4,4,4,4),
-                        c(1,3,3,3,3,4,4,4,4,4,4),
-                        c(1,3,3,3,3,4,4,4,4,4,4),
-                        c(2,5,5,5,5,6,6,6,6,6,6),
-                        c(2,5,5,5,5,6,6,6,6,6,6),
-                        c(2,5,5,5,5,6,6,6,6,6,6),
-                        c(2,5,5,5,5,6,6,6,6,6,6),
-                        c(7,7,7,7,7,7,7,7,7,7,7),
-                        c(8,8,8,8,8,8,8,8,8,8,8)))
-dev.off() # one column wide, equal height
+# myheight <- 7
+# mywidth <- 7
+# mypower$n <- mypower$v + 2
+# mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
+# mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
+# 
+# p<-ggplot(mypower, aes(x=f2, y=power, group=n)) +
+#   geom_vline(xintercept = myeffectsize, linetype = "dashed", color = "darkgray")+
+#   geom_line(aes(color=n))+
+#   geom_point(aes(color=n))+
+#   geom_point(x = myeffectsize, y = mypowersize, pch = 1, size = 5, color = "darkgray")+
+#   theme_classic()+
+#   labs(tag = "D")+
+#   labs(color = "n (total barcodes \n in two treatments))")+
+#   scale_x_continuous(name = "Fitness Difference between Treatments", breaks = c(myeffectsize*0.05, myeffectsize*0.1, myeffectsize*0.25, 
+#                                                                                 myeffectsize*0.5, myeffectsize*0.75, myeffectsize, 
+#                                                                                 myeffectsize*1.25, myeffectsize*1.5, myeffectsize*1.75, myeffectsize*2), 
+#                      labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
+#   theme(legend.direction = "horizontal")+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# 
+# legend2 <- get_legend(p)
+# p <- p + theme(legend.position="none")
+# p
+# pD <- p
+# 
+# # Plot using grid and output ---------------------------------------------------
+# mywidth <- 6.69
+# myheight <- 6.69
+# pdf(file = "000_Figure_3.pdf", width = mywidth, height = myheight)
+# grid.arrange( grid::textGrob("POC Fitness \n Assays", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
+#               grid::textGrob("250-Generation \n Experiment", gp =grid::gpar(fontsize = 12, fontface = "bold"), rot = 90),
+#               pA,pB,
+#               pC,pD,
+#               legend1, legend2,
+#   layout_matrix = rbind(c(1,3,3,3,3,4,4,4,4,4,4),
+#                         c(1,3,3,3,3,4,4,4,4,4,4),
+#                         c(1,3,3,3,3,4,4,4,4,4,4),
+#                         c(1,3,3,3,3,4,4,4,4,4,4),
+#                         c(2,5,5,5,5,6,6,6,6,6,6),
+#                         c(2,5,5,5,5,6,6,6,6,6,6),
+#                         c(2,5,5,5,5,6,6,6,6,6,6),
+#                         c(2,5,5,5,5,6,6,6,6,6,6),
+#                         c(7,7,7,7,7,7,7,7,7,7,7),
+#                         c(8,8,8,8,8,8,8,8,8,8,8)))
+# dev.off() # one column wide, equal height
 # ------------------------------------------------------------------------------
 rm(legend1, legend2, my, my1, my2, my3, my4, my5, my6, my7, my8, my9, my10, mymod, mypower, mypower2, p, pA, pB, pC, pD, pow, i,
    myeffectsize, myheight, mypowersize, myrmse, myv, mywidth, psd)
 ```
 <br/><br/>
+
+
+Analysis: Power (Vizualize for Methods manuscript)
+```{r}
+# individual bc ------------------------------------------------------------------------------------
+# # POC DATA -------------------------------------------------------------------
+my <- poc92 # conduct necessary calculations
+my1 <- my[my$exp == 1,]; colnames(my1) <- paste0(colnames(my1), "_R1")
+my2 <- my[my$exp == 2,]; colnames(my2) <- paste0(colnames(my2), "_R2")
+my3 <- my[my$exp == 3,]; colnames(my3) <- paste0(colnames(my3), "_R3")
+my4 <- my[my$exp == 4,]; colnames(my4) <- paste0(colnames(my4), "_R4")
+my5 <- my[my$exp == 5,]; colnames(my5) <- paste0(colnames(my5), "_R5")
+my6 <- my[my$exp == 6,]; colnames(my6) <- paste0(colnames(my6), "_R6")
+my7 <- my[my$exp == 7,]; colnames(my7) <- paste0(colnames(my7), "_R7")
+my8 <- my[my$exp == 8,]; colnames(my8) <- paste0(colnames(my8), "_R8")
+my9 <- my[my$exp == 9,]; colnames(my9) <- paste0(colnames(my9), "_R9")
+my10 <- my[my$exp == 10,]; colnames(my10) <- paste0(colnames(my10), "_R10")
+poc92_w <- cbind(my1, my2, my3, my4, my5, my6, my7, my8, my9, my10)
+
+for(i in 1:nrow(poc92_w)){
+  poc92_w$mnrw[i] <- weighted.mean(poc92_w[i,c("rw_R1", "rw_R2", "rw_R3", "rw_R4", "rw_R5", "rw_R6", "rw_R7", "rw_R8", "rw_R9", "rw_R10")],
+                                    poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+  poc92_w$mnr[i] <- rowMeans(poc92_w[i,c("r_R1", "r_R2", "r_R3", "r_R4", "r_R5", "r_R6", "r_R7", "r_R8", "r_R9", "r_R10")], na.rm = T)
+}
+
+my <- poc92_w
+my$psd_r1 <- ((my$rw_R1-my$mnrw)^2)/10
+my$psd_r2 <- ((my$rw_R2-my$mnrw)^2)/10
+my$psd_r3 <- ((my$rw_R3-my$mnrw)^2)/10
+my$psd_r4 <- ((my$rw_R4-my$mnrw)^2)/10
+my$psd_r5 <- ((my$rw_R5-my$mnrw)^2)/10
+my$psd_r6 <- ((my$rw_R6-my$mnrw)^2)/10
+my$psd_r7 <- ((my$rw_R7-my$mnrw)^2)/10
+my$psd_r8 <- ((my$rw_R8-my$mnrw)^2)/10
+my$psd_r9 <- ((my$rw_R9-my$mnrw)^2)/10
+my$psd_r10 <- ((my$rw_R10-my$mnrw)^2)/10
+my$psd_m <- rowMeans(cbind(my$psd_r1, my$psd_r2, my$psd_r3, my$psd_r4, my$psd_r5, my$psd_r6, my$psd_r7, my$psd_r8, my$psd_r9, my$psd_r10), na.rm = T)
+my$psd <- sqrt(my$psd_m) # get the pop standard dev for each entry
+psd <- weighted.mean(my$psd, my$mnr, na.rm = T) # get the weighted mean pop standard dev for reporting
+psdpoc <- psd
+# prepare plot data ----------------------------------------
+mypower <- matrix(nrow=22*3, ncol = 5); colnames(mypower) <- c("fitchange", "psd", "n", "power", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$fitchange <- c(0.0025, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22)
+mypower$psd <- psd
+mypower$n <- c(rep(2,22), rep(3,22), rep(4,22))
+mypower$power <- NA
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,22), rep(2,22), rep(3,22))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.t.test(d=mypower$fitchange[i] / mypower$psd[i],
+                               n=mypower$n[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+mypower$n <- factor(mypower$n, levels = c(4,3,2))
+mypower <- mypower[mypower$n == 4,]
+mypower_a_poc <- mypower
+mypower_a_poc$exp <- "POC Fitness Assays"
+
+# # 250 gen DATA -------------------------------------------------------------------
+# power to detect fitness increase / decrease (t-tests) --------------------------------------------
+# d = m1 - m2 / q; m1 is mean group 1, m2 is mean group 2, q is common standard deviation in the two groups
+# here m1 is change in fitness and m2 is 0. mean q is used and is the weighted mean of all
+# population standard deviation of the four replicate sets in each row of the dataset.
+
+# get data and conduct population sd calculation -----------
+my <- myfa_w
+my$psd_r1 <- (my$deltafit-my$mndeltafit)^2
+my$psd_r2 <- (my$deltafit_2-my$mndeltafit)^2
+my$psd_r3 <- (my$deltafit_3-my$mndeltafit)^2
+my$psd_r4 <- (my$deltafit_4-my$mndeltafit)^2
+my$psd_m <- rowMeans(cbind(my$psd_r1, my$psd_r2, my$psd_r3, my$psd_r4), na.rm = T)
+my$psd <- sqrt(my$psd_m)
+psd <- weighted.mean(my$psd, my$mnrdeltafit, na.rm = T)
+psd250 <- psd
+# prepare plot data ----------------------------------------
+mypower <- matrix(nrow=22*3, ncol = 5); colnames(mypower) <- c("fitchange", "psd", "n", "power", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$fitchange <- c(0.0025, 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.035, 0.04, 0.045, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22)
+mypower$psd <- psd
+mypower$n <- c(rep(2,22), rep(3,22), rep(4,22))
+mypower$power <- NA
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,22), rep(2,22), rep(3,22))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.t.test(d=mypower$fitchange[i] / mypower$psd[i],
+                               n=mypower$n[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+mypower$n <- factor(mypower$n, levels = c(4,3,2))
+mypower <- mypower[mypower$n == 4,]
+mypower_a_250 <- mypower
+mypower_a_250$exp <- "250 Generation Evolution Fitness Assays"
+mypower <- rbind(mypower_a_poc, mypower_a_250)
+mypower$exp <- as.factor(mypower$exp)
+mypower$exp <- relevel(mypower$exp, ref = "POC Fitness Assays")
+
+# Plotting -------------------------------------------------
+# plot effect size x power -------------
+p<-ggplot(mypower, aes(x=fitchange, y=power, group=exp)) +
+  geom_vline(xintercept = 0.01, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.025, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.05, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 0.1, linetype = "dashed", color = "gray")+
+  geom_line(aes(color=exp))+
+  geom_point(aes(color=exp))+
+  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psdpoc, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psdpoc, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psdpoc, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psdpoc, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.01, y = pwr.t.test(d = 0.01 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.025, y = pwr.t.test(d = 0.025 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
+  scale_x_continuous(name = "Fitness difference (& fitness change) \n for individual barcodes \n ", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0,0.1))+
+  scale_color_manual(values =setpalette) + 
+  labs(color = "Experiment")+
+  theme_classic()+
+  labs(tag ="A")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+legend1 <- get_legend(p)
+p <- p + theme(legend.position="none")
+pA <- p
+pA
+
+
+
+
+
+
+
+# treatment ----------------------------------------------------------------------------------------
+# # POC DATA -------------------------------------------------------------------
+# run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
+my <- poc92[order(poc92$bcid),]
+my$rw_corrected <- my$rw - weighted.mean(my$rw, my$r)
+mymod <- lm(my$rw_corrected~ my$bcid + 0, weights = my$r); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~1.76 fitness change 
+myeffectsize <- 1/myrmse # effect size of 1 is a 1.76 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+myv <- (22*2) -1 - 1
+mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = myeffectsize, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
+
+# prepare plot data ----------
+mypower <- matrix(nrow=100, ncol = 5); colnames(mypower) <- c("u", "v", "power", "f2", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$u <- 1
+mypower$v <- c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1)
+mypower$power <- NA
+mypower$f2 <- c(rep(myeffectsize*2,10), rep(myeffectsize*1.75,10), rep(myeffectsize*1.5,10),
+                rep(myeffectsize*1.25,10), rep(myeffectsize*1,10), rep(myeffectsize*.75,10), 
+                rep(myeffectsize*.5,10), rep(myeffectsize*.25,10),  rep(myeffectsize*.1,10),  rep(myeffectsize*.05,10))
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,10), rep(2,10), rep(3,10), rep(4,10), rep(5,10), rep(6,10), rep(7,10), rep(8,10), rep(9,10), rep(10,10))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.f2.test(u=mypower$u[i],
+                               v=mypower$v[i],
+                               f2=mypower$f2[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+
+mypower$n <- mypower$v + 2
+mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
+mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
+mypower <- mypower[mypower$n == 44,]
+mypower$f2 <- mypower$f2*myrmse
+mypower_b_poc <- mypower
+mypower_b_poc$exp <- "POC Fitness Assays"
+myeffectsize_b_poc <- myeffectsize*myrmse
+mypowersize_b_poc <- mypowersize
+
+# 250gen DATA -----------------------------------------------------------------------------------------
+# run the appropriate model (fit equivalence model from above -- telling us ability to measure fit for each bcid based on our 10 replicates.)
+my <- myfa[order(myfa$bctID),]
+mymod <- lm(my$deltafit ~ my$bctID + 0, weights = my$rdeltafit); summary(mymod)
+myrmse <-sqrt(mean(residuals(mymod)^2))*100 # this is the rmse from the fitness equivalence model*100 --> effect size of 1 corresonds to an ~4.307 fitness dif
+myeffectsize <- 1/myrmse # effect size of 1 is a 4.307 fitnesss change, so for a fitness change of 1.00, expect effect size of 1/myrmse
+
+# power to detect treatment effects ------------------------------
+myv <- (22*2) -1 - 1
+mypowersize <- (pwr.f2.test(u = 1, v=myv, f2 = myeffectsize, sig.level = 0.05))$power # powersize for plotting below, where 22 is the number of BCs in any given treatment. 
+
+# prepare plot data ----------------------------------------
+mypower <- matrix(nrow=100, ncol = 5); colnames(mypower) <- c("u", "v", "power", "f2", "sig.level")
+mypower <- as.data.frame(mypower)
+mypower$u <- 1
+mypower$v <- c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1)
+mypower$power <- NA
+mypower$f2 <- c(rep(myeffectsize*2,10), rep(myeffectsize*1.75,10), rep(myeffectsize*1.5,10),
+                rep(myeffectsize*1.25,10), rep(myeffectsize*1,10), rep(myeffectsize*.75,10), 
+                rep(myeffectsize*.5,10), rep(myeffectsize*.25,10),  rep(myeffectsize*.1,10),  rep(myeffectsize*.05,10))
+mypower$sig.level <- 0.05
+mypower$group <- c(rep(1,10), rep(2,10), rep(3,10), rep(4,10), rep(5,10), rep(6,10), rep(7,10), rep(8,10), rep(9,10), rep(10,10))
+mypower$group <- as.factor(mypower$group)
+for(i in 1:nrow(mypower)){
+  pow <- pwr.f2.test(u=mypower$u[i],
+                               v=mypower$v[i],
+                               f2=mypower$f2[i],
+                               sig.level = mypower$sig.level[i])
+  mypower$power[i] <- pow$power
+}
+
+mypower$n <- mypower$v + 2
+mypower$n <- factor(mypower$n, levels =c(myv+2, (myv*0.9)+2, (myv*0.8)+2, (myv*0.7)+2, (myv*0.6)+2, (myv*0.5)+2, (myv*0.4)+2, (myv*0.3)+2, (myv*0.2)+2, (myv*0.1)+2))
+mypower$v <- factor(mypower$v, levels =c(myv, myv*0.9, myv*0.8, myv*0.7, myv*0.6, myv*0.5, myv*0.4, myv*0.3, myv*0.2, myv*0.1))
+mypower <- mypower[mypower$n == 44,]
+mypower$f2 <- mypower$f2*myrmse
+mypower_b_250 <- mypower
+mypower_b_250$exp <- "250 Generation Evolution Fitness Assays"
+myeffectsize_b_250 <- myeffectsize*myrmse
+mypowersize_b_250 <- mypowersize
+mypower <- rbind(mypower_b_poc, mypower_b_250)
+mypower$exp <- as.factor(mypower$exp)
+mypower$exp <- relevel(mypower$exp, ref = "POC Fitness Assays")
+
+# Plotting -------------------------------------------------
+# plot effect size x power -------------
+p<-ggplot(mypower, aes(x=f2, y=power, group=exp)) +
+  geom_vline(xintercept = myeffectsize_b_poc, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = myeffectsize_b_250, linetype = "dashed", color = "darkgray")+
+  geom_line(aes(color=exp))+
+  geom_point(aes(color=exp))+  
+  geom_point(x = myeffectsize_b_poc, y = mypowersize_b_poc, pch = 1, size = 5, color = "darkgray")+
+  geom_point(x = myeffectsize_b_250, y = mypowersize_b_250, pch = 1, size = 5, color = "darkgray")+
+  theme_classic()+
+  labs(tag = "B")+
+  labs(color = "n (total barcodes \n in two treatments))")+
+  scale_x_continuous(name = "Fitness difference between treatments \n ", breaks = c(0.05, 0.1, 0.25,
+                                                                                0.5, 0.75, 1.0,
+                                                                                1.25, 1.5, 1.75, 2),
+                     labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
+  scale_color_manual(values =setpalette) + 
+  theme(legend.position = "none")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+pB <- p
+pB
+
+# Plot using grid and output ---------------------------------------------------
+mywidth <- 3.345
+myheight <- 6.69
+pdf(file = "000_Figure_3.pdf", width = mywidth, height = myheight)
+grid.arrange(pA,pB,
+            legend1,
+  layout_matrix = rbind(c(1,1,1,1),
+                        c(1,1,1,1),
+                        c(1,1,1,1),
+                        c(1,1,1,1),
+                        c(2,2,2,2),
+                        c(2,2,2,2),
+                        c(2,2,2,2),
+                        c(2,2,2,2),
+                        c(3,3,3,3)))
+dev.off() # one column wide, equal height
+# ------------------------------------------------------------------------------
+rm(legend1, legend2, my, my1, my2, my3, my4, my5, my6, my7, my8, my9, my10, mymod, mypower, mypower2, p, pA, pB, pC, pD, pow, i,
+   myeffectsize, myheight, mypowersize, myrmse, myv, mywidth, psd, mypower_a_250, mypower_a_poc, mypower_b_250, mypower_b_poc,
+   myeffectsize_b_250, myeffectsize_b_poc, mypowersize_b_250, mypowersize_b_poc, psd250, psdpoc)
+```
+<br/><br/>
+
 
 
 Analysis: Assess effects of evoluitonary treatment on change in fitness in 250-generations of experimental evolution. 
