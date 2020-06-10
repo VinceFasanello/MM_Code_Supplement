@@ -43,40 +43,40 @@ Main Figures:
 3.  000_Figure_4.pdf 
 4.  000_Figure_5.pdf
 
-Additional Files:
-1.  000_Additional_File_4.html
-2.  000_Additional_File_5.html
-3.  000_Additional_File_6.html
-4.  000_Additional_File_7.pdf
-5.  000_Additional_File_8.pdf
-6.  000_Additional_File_9.html
-7.  000_Additional_File_10.html
-8.  000_Additional_File_11.html
-9.  000_Additional_File_12.html
-10.  000_Additional_File_13.html
-11.  000_Additional_File_14.html
-12.  000_Additional_File_15.pdf
-13.  000_Additional_File_16.html
-14.  000_Additional_File_17.pdf
-15.  000_Additional_File_18.html
-16.  000_Additional_File_19.pdf
-17.  000_Additional_File_20.html
-18.  000_Additional_File_21.pdf
-19.  000_Additional_File_22.html
-20.  000_Additional_File_23.pdf
-21.  000_Additional_File_24.html
-22.  000_Additional_File_25.pdf
-23.  000_Additional_File_26.html
-24.  000_Additional_File_27.pdf
+Supplemental files:
+1.  000_Supplemental_Table_S4.html
+2.  000_Supplemental_Table_S5.html
+3.  000_Supplemental_Table_S6.html
+4.  000_Supplemental_Figure_S1.pdf
+5.  000_Supplemental_Figure_S2.pdf
+6.  000_Supplemental_Table_S7.html
+7.  000_Supplemental_Table_S8.html
+8.  000_Supplemental_Table_S9.html
+9.  000_Supplemental_Table_S10.html
+10.  000_Supplemental_Table_S11.html
+11.  000_Supplemental_Table_S12.html
+12.  000_Supplemental_Figure_S3.pdf
+13.  000_Supplemental_Table_S13.html
+14.  000_Supplemental_Figure_S4.pdf
+15.  000_Supplemental_Table_S14.html
+16.  000_Supplemental_Figure_S5.pdf
+17.  000_Supplemental_Table_S15.html
+18.  000_Supplemental_Figure_S6.pdf
+19.  000_Supplemental_Table_S16.html
+20.  000_Supplemental_Figure_S7.pdf
+21.  000_Supplemental_Table_S17.html
+22.  000_Supplemental_Figure_S8.pdf
+23.  000_Supplemental_Table_S18.html
+24.  000_Supplemental_Figure_S9.pdf
 
 
 * Figure_1, is not output by this script; it is manually created in excel 
 
-* Table_1 is not created directly from this script, but is built from outputs associated with Additional Files 14:27.
+* Table_1 is not created directly from this script, but is built from outputs associated with Supplemental figures S3:S9 and Supplemental tables S12:S18
 
-* Additional Files 1, 2, and 3 are created by hand in excel and are not created by this script
+* Supplemental files 1, 2, and 3 are created by hand in excel and are not created by this script
 
-* Additional_File_4 is output with raw p-values, but values are converted to fdr for publication and presented in an xlsx format document. Additional_File_12 is output with raw 2-sided test p-values, but values are converted to 1-sided (higher) and fdr for publication and presented in an xlsx format document. 
+* Supplemental_Table_S4 is output with raw p-values, but values are converted to fdr for publication and presented in an xlsx format document. Supplemental_Table_S10 is output with raw 2-sided test p-values, but values are converted to 1-sided (higher) and fdr for publication and presented in an xlsx format document. 
 
 
 ***
@@ -197,7 +197,7 @@ paste0("RsMSE = ",
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Additional_File_4.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T,  wrap.labels = 100, file = "000_Supplemental_Table_S4.html")
 # -----------------------------------------------------------------------------
 
 # create temporary plotting dataframe -----------------------------------------
@@ -225,7 +225,7 @@ myhighlight <- "black"
 myfillapha <- 0.35
 myptalpha <- 0.35
 mylinealpha <- 0.35
-mypalette <- setpalette
+mypalette <- c("#28bd90", "#6e3001")
 
 mytextsize <- 8
 myheight <- 3.345 
@@ -387,7 +387,7 @@ p_b
 
 # figure output ---------------------------------------------------------------
 grid.arrange(p_a, p_b, nrow = 2)
-pdf(file = "000_Additional_File_7.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
+pdf(file = "000_Supplemental_Figure_S1.pdf", width = mywidth, height = myheight); grid.arrange(p_a, p_b, nrow = 2); dev.off() # 2columns wide, half as tall
 
 # -----------------------------------------------------------------------------
 rm(cc, myt, p_a, p_b, cc001, cc002, r001, r002, myx2, mybinwidth, myc, myfillapha, myheight, myhighlight, mylinealpha, myptalpha, myr, mytextsize, mytitle, mywidth, myx, myxlab, myylab) # remove the temporary variable
@@ -440,7 +440,7 @@ myhighlight <- "grey50"
 myfillapha <- 0.35
 myptalpha <- 0.35
 mylinealpha <- 0.35
-mypalette <- setpalette
+mypalette <- mypalette <- c("#28bd90", "#6e3001")
 
 mytextsize <- 8
 myheight <- 7
@@ -468,7 +468,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_8.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
+pdf(file = "000_Supplemental_Figure_S2.pdf", width = mywidth, height = myheight); p; dev.off()  # 7by7
 
 # -----------------------------------------------------------------------------
 rm(faevo.1.ce, faevo.1.cc, faevo.2.ce, faevo.2.cc, myt1, myt1r, myt2, myt2r, myt, mytr, p) # clean up this section. 
@@ -489,7 +489,7 @@ plot(mymod) # model fit (multi) -- looks pretty good.
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_12.html") # table does not have corrected p-values. 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S10.html") # table does not have corrected p-values. 
 # -----------------------------------------------------------------------------
 
 # create results dataframe ----------------------------------------------------
@@ -573,7 +573,7 @@ myhighlight3 <- setpalette[2]
 myfillapha <- 0.25
 myptalpha <- 0.35
 mylinealpha <- 0.35
-mypalette <- setpalette
+mypalette <- mypalette <- c("#28bd90", "#6e3001")
 
 mytextsize <- 8
 myheight <- 3.345
@@ -705,7 +705,7 @@ car::vif(mymod) # VIF looks okay.
 summary(mymod)
 
 # model output -----------------------------------------------------------------=
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_11.html") # r2 on the lm version of htis model is 
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Supplemental_Table_S9.html") # r2 on the lm version of htis model is 
 # -----------------------------------------------------------------------------
 rm(mymod)
 ```
@@ -907,7 +907,7 @@ for(i in 1:nrow(mypower)){
 
 # model output -----------------------------------------------------------------
 mypower2 <- round(mypower[,1:5], digits = 5)
-tab_df(mypower2, file = "000_Additional_File_5.html")
+tab_df(mypower2, file = "000_Supplemental_Table_S5.html")
 # -----------------------------------------------------------------------------
 
 
@@ -969,7 +969,7 @@ for(i in 1:nrow(mypower)){
 
 # model output -----------------------------------------------------------------
 mypower2 <- round(mypower[,1:5], digits = 5)
-tab_df(mypower2, file = "000_Additional_File_6.html")
+tab_df(mypower2, file = "000_Supplemental_Table_S6.html")
 # -----------------------------------------------------------------------------
 
 # # plot -----------------------
@@ -1034,7 +1034,7 @@ for(i in 1:nrow(mypower)){
 
 # model output -----------------------------------------------------------------
 mypower2 <- round(mypower[,1:5], digits = 5)
-tab_df(mypower2, file = "000_Additional_File_9.html")
+tab_df(mypower2, file = "000_Supplemental_Table_S7.html")
 # -----------------------------------------------------------------------------
 
 # # Plotting -------------------------------------------------
@@ -1098,7 +1098,7 @@ for(i in 1:nrow(mypower)){
 
 # model output -----------------------------------------------------------------
 mypower2 <- round(mypower[,1:5], digits = 5)
-tab_df(mypower2, file = "000_Additional_File_10.html")
+tab_df(mypower2, file = "000_Supplemental_Table_S8.html")
 # -----------------------------------------------------------------------------
 
 # myheight <- 7
@@ -1271,7 +1271,7 @@ p<-ggplot(mypower, aes(x=fitchange, y=power, group=exp)) +
   geom_point(x = 0.05, y = pwr.t.test(d = 0.05 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
   geom_point(x = 0.1, y = pwr.t.test(d = 0.1 / psd250, n = 4, sig.level = 0.05)$power, pch = 1, size = 5, color = "gray")+
   scale_x_continuous(name = "Fitness difference (& fitness change) \n for individual barcodes \n ", breaks = c(0.01, 0.025, 0.05, 0.1), labels = c("1%", "2.5%", "5%", "10%"), limits = c(0,0.1))+
-  scale_color_manual(values =setpalette) + 
+  scale_color_manual(values = c("#28bd90", "#6e3001")) + 
   labs(color = "Experiment")+
   theme_classic()+
   labs(tag ="A")+
@@ -1388,7 +1388,7 @@ p<-ggplot(mypower, aes(x=f2, y=power, group=exp)) +
                                                                                 0.5, 0.75, 1.0,
                                                                                 1.25, 1.5, 1.75, 2),
                      labels = c("0.05%","", "0.25%", "0.5%", "0.75%", "1.0%", "1.25%", "1.5%", "1.75%", "2.0%"))+
-  scale_color_manual(values =setpalette) + 
+  scale_color_manual(values = c("#28bd90", "#6e3001")) + 
   theme(legend.position = "none")+
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 pB <- p
@@ -1425,7 +1425,7 @@ my <- myfa[order(myfa$bctID),] # placeholder dataframe
 # model & diagnostic plots ----------------------------------------------------
 mymod <- lmer(I(scale(deltafit)) ~ I(scale(ccdeltafit)) +treatment +(1|bctID), weights = rdeltafit, data = my, control=lmerControl(optimizer ="bobyqa",optCtrl=list(maxfun=2e4)))
 # model output -----------------------------------------------------------------=
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Additional_File_13.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, show.r2 = F, file = "000_Supplemental_Table_S11.html")
 # -----------------------------------------------------------------------------
 
 
@@ -1557,7 +1557,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_14.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S12.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1607,7 +1607,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_15.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S3.pdf", width = mywidth, height = myheight); p; dev.off()
 
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
@@ -1636,7 +1636,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_16.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S13.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1688,7 +1688,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_17.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S4.pdf", width = mywidth, height = myheight); p; dev.off()
 
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab, myfillapha, mylinealpha)
@@ -1717,7 +1717,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_18.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S14.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1767,7 +1767,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_19.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S5.pdf", width = mywidth, height = myheight); p; dev.off()
 
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
@@ -1796,7 +1796,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_20.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S15.html")
 
 # -----------------------------------------------------------------------------
 
@@ -1847,7 +1847,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_21.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S6.pdf", width = mywidth, height = myheight); p; dev.off()
 
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
@@ -1873,7 +1873,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_22.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S16.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1922,7 +1922,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_23.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S7.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
@@ -1946,7 +1946,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_24.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S17.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -1996,7 +1996,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_25.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S8.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
@@ -2024,7 +2024,7 @@ summary(mymod)$adj.r.squared # for adjusted R2 value
 # -----------------------------------------------------------------------------
 
 # model output -----------------------------------------------------------------
-tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Additional_File_26.html")
+tab_model(mymod, digits = 5, digits.p = 8, show.stat = T, wrap.labels = 100, file = "000_Supplemental_Table_S18.html")
 # -----------------------------------------------------------------------------
 
 # Visualize -------------------------------------------------------------------
@@ -2074,7 +2074,7 @@ p
 # -----------------------------------------------------------------------------
 
 # figure output ---------------------------------------------------------------
-pdf(file = "000_Additional_File_27.pdf", width = mywidth, height = myheight); p; dev.off()
+pdf(file = "000_Supplemental_Figure_S9.pdf", width = mywidth, height = myheight); p; dev.off()
 # -----------------------------------------------------------------------------
 rm(my, mymod, p, myc, myfill, myheight, myoutline, mypalette, myptalpha, myptsize, myr, mytextsize, mytitle, mywidth, myx, myxlab, myy, myylab)
 ```
